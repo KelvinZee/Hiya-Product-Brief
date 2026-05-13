@@ -393,12 +393,12 @@
 
         {/* H1 — ~28 words, strong + leak + framework, no aphorism */}
         <h1 className="mt-6 font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl lg:text-5xl leading-[1.1] max-w-4xl">
-          Hiya's distribution at carrier and OEM scale is the moat; the wedge for this role is enterprise activation pull-through that compounds on the network rather than competing with it.
+          Hiya's distribution at carrier and OEM scale is the moat. The wedge for this role is enterprise activation pull-through: monetizing the network rather than rebuilding it.
         </h1>
 
         {/* Paragraph 1 — who I am */}
         <p className="mt-10 max-w-2xl text-body text-base md:text-lg leading-relaxed">
-          Senior product leader, 18+ years on subscription, billing, lifecycle, and engagement platforms at Amazon Prime and T-Mobile. At Prime (L7), I owned the global benefit-activation platform across 26 country PM teams, associated with +23% renewals and 30M+ monthly benefit utilizations. Earlier at T-Mobile, Billing & Benefits became the #1 digital property by MAU: +204% one-time payment completion, +76% recurring setup, +23% CLV, 43% reduction in billing-related care calls. Currently on a stabilized caregiving break, with daily AI tooling practice across Claude Code, Codex, and ChatGPT.
+          Senior product leader. 18 years on subscription, billing, lifecycle, and engagement platforms at Amazon Prime and T-Mobile. At Prime (L7), I owned the global benefit-activation platform across 26 country PM teams, associated with +23% renewals and 30M+ monthly benefit utilizations. Earlier at T-Mobile, Billing & Benefits became the #1 digital property by MAU: +204% one-time payment completion, +76% recurring setup, +23% CLV, 43% reduction in billing-related care calls. Currently on a stabilized caregiving break, with daily AI tooling practice across Claude Code, Codex, and ChatGPT.
         </p>
 
         {/* Paragraph 2 — what this brief is */}
@@ -520,7 +520,7 @@
         Three forces are colliding on the trust layer of business calling.
       </h2>
       <p className="mt-5 text-body max-w-3xl leading-relaxed">
-        The four hypotheses in §02 sit on top of three external forces that have all moved in the last 18 months. Each force shifts what a Principal PM can plausibly own in the next 90 to 180 days. Each is documented enough in public material to anchor a discovery plan, but not enough to commit to a specific bet from outside the company.
+        The four hypotheses in §02 are responses to three external forces, each of which moved in the last 18 months. Each force shifts what a Principal PM can plausibly own in the next 90 to 180 days. Each is documented enough in public material to anchor a discovery plan, but not enough to commit to a specific bet from outside the company.
       </p>
 
       <div className="mt-10 grid md:grid-cols-3 gap-5">
@@ -652,7 +652,7 @@
     return (
       <SectionShell sec={sec}>
         <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
-          Voice is following the arc that SMS already traced.
+          SMS already ran this transition. Voice is running a compressed version of it.
         </h2>
         <p className="mt-5 text-body max-w-3xl leading-relaxed">
           The closest precedent for branded voice calling isn't voice. It's SMS. Between roughly 2018 and 2024, business-to-consumer SMS in the US went through a regulatory and trust transition that mirrors what's happening to voice now, on a compressed timeline. The vendors that compounded weren't the ones with the best filtering tech; they were the ones that owned the carrier integration and registration layers together, then built reputation tooling on top of that distribution. The analogy isn't perfect, and the differences are named below. But the shape of the transition and the vendor positions that emerged are instructive.
@@ -825,7 +825,7 @@
     },
     {
       head: 'The per-displayed-call billing is purely customer-friendly.',
-      body: "It's customer-favorable on attribution but creates a verification dependency, and likely makes revenue forecasting harder than per-attempt billing would.",
+      body: "It's customer-favorable on attribution but creates a verification dependency, and almost certainly makes revenue forecasting more variable than per-attempt billing: Hiya only books revenue on calls that successfully display, not on calls attempted.",
     },
     {
       head: 'The self-service tier breaks are optimized for activation.',
@@ -903,13 +903,13 @@
           <Dot /> The deliberate design choice
         </div>
         <p className="text-body leading-relaxed">
-          The split between free-for-business and paid-for-business surfaces isn't a pricing accident. It's a strategic choice that does specific work: it lets Hiya act as a trust intermediary in the carrier-mediated voice channel without forcing every business to pay for the privilege of being honestly labeled. The carriers and OEMs underwrite the trust layer that businesses then build on top of. That posture is the difference between a vendor and a piece of infrastructure.
+          The split between free-for-business and paid-for-business surfaces isn't a pricing accident. It's a strategic choice that does specific work: it lets Hiya act as a trust intermediary in the carrier-mediated voice channel without forcing every business to pay for the privilege of being honestly labeled. The carriers and OEMs underwrite the trust layer that businesses then build on top of.
         </p>
         <p className="mt-5 text-body leading-relaxed">
           Caller Reputation, launched September 30, 2025 with AT&T as the originating carrier, is the most visible manifestation of this design choice. Hiya describes it as "a credit score for business calls": a free, public-facing reputation score that any business can check. The cost structure means Hiya can credibly hold that frame; competitors that have to monetize reputation directly can't.
         </p>
         <p className="mt-5 text-body leading-relaxed">
-          Pricing architectures that operate cleanly across legal, finance, care, retail, billing, and customer-delivery functions are the result of deliberate design choices. The cleanness of Hiya's free-vs-paid split suggests this one was made with intention.
+          Pricing architectures that hold together across legal, finance, care, retail, billing, and customer-delivery functions are designed deliberately. Hiya's free-vs-paid split shows that design.
         </p>
       </div>
 
@@ -1004,7 +1004,7 @@
   const Network = ({ sec }) => (
     <SectionShell sec={sec}>
       <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
-        Distribution at carrier and OEM scale is the asymmetric moat.
+        Distribution at carrier and OEM scale is what competitors can't replicate quickly.
       </h2>
       <p className="mt-5 text-body max-w-3xl leading-relaxed">
         The trust stack from §05 sits on top of distribution that competitors can't replicate quickly. Hiya runs carrier integrations across the United States, United Kingdom, Continental Europe, and Canada, plus an OEM partnership with Samsung that runs through 2028. The combined surface reaches roughly 500M users globally. Most of this distribution was secured years ago through enterprise-grade contracts that don't expire on quarterly cycles; the recent activity has been adding carrier-mediated branded calling launches on top of existing protect-layer relationships.
@@ -1231,7 +1231,7 @@
         The competitive set splits into three groups that don't overlap cleanly.
       </h2>
       <p className="mt-5 text-body max-w-3xl leading-relaxed">
-        Hiya's competitive frame is partial overlap, not zero-sum. Three distinct vendor categories sit adjacent to the products in §05: branded-calling and rich-call-data vendors, reputation-management vendors, and the new Voice AI Agent category. The interesting observation is that no single competitor occupies all three positions, and Hiya is one of the few vendors with a credible position in all three plus the carrier-distribution layer underneath them. Truecaller is named separately at the end because it competes on a different axis (consumer-first identification) than the enterprise frame.
+        Hiya competes on partial overlap with three distinct vendor categories. None of them sits where Hiya sits, and Hiya doesn't sit where any of them sits. The three groups are branded-calling and rich-call-data vendors, reputation-management vendors, and the new Voice AI Agent category, each sitting adjacent to the products in §05. The interesting observation is that no single competitor occupies all three positions, and Hiya is one of the few vendors with a credible position in all three plus the carrier-distribution layer underneath them. Truecaller is named separately at the end because it competes on a different axis (consumer-first identification) than the enterprise frame.
       </p>
 
       {FIELD_GROUPS.map((g, gi) => (
@@ -1332,7 +1332,7 @@
   const BUYER_PERSONAS = [
     {
       name: 'Contact center operations',
-      qualifier: 'still the gravitational center',
+      qualifier: 'largest single persona by volume',
       owns: 'Outbound contact rate, agent productivity, per-call cost.',
       measures: 'Answer rate, completed contacts per hour, cost per successful contact.',
       budget: 'Contact-center P&L (largest, slowest-moving).',
@@ -1383,7 +1383,7 @@
         The buying committee fragmented along with the product line.
       </h2>
       <p className="mt-5 text-body max-w-3xl leading-relaxed">
-        Five years ago, "who buys voice trust services" had one answer: the contact center operations director. The four hypotheses in §02 each pull in a different buyer: marketing for branded ID, sales ops for AI agents, security and risk for deepfake detection, and compliance for STIR/SHAKEN attestation. Contact center is still the gravitational center, but the activation funnel can no longer assume a single buyer with a single budget and a single success metric. Packaging absorbs this fragmentation, or sales cycles balloon.
+        Five years ago, "who buys voice trust services" had one answer: the contact center operations director. The four hypotheses in §02 each pull in a different buyer: marketing for branded ID, sales ops for AI agents, security and risk for deepfake detection, and compliance for STIR/SHAKEN attestation. Contact center operations still buys more than any other persona, but the activation funnel now serves a five-persona committee instead of a single buyer. Packaging absorbs this fragmentation, or sales cycles balloon.
       </p>
 
       {/* Then / Now */}
@@ -1687,7 +1687,7 @@
       {
         title: 'Caller Reputation is the activation engine for Hiya Connect, and the engine is underclocked.',
         line:  'The free "credit score for business calls" with AT&T launched Sep 30, 2025. Outside-in signal suggests it functions as a reporting surface today; the wedge is turning it into an instrumented activation funnel into paid Number Registration and Branded Call.',
-        mechanism: 'Today a business arrives at Caller Reputation, sees its score, and learns whether its numbers are mislabeled. Hiya\'s own data names the demand: 53% of enterprise leaders report mislabels have lowered contact rates; 17% don\'t know if they\'ve been mislabeled. The mechanism is to take that diagnosis moment and turn it into a paid path: Number Registration to resolve mislabels, then Branded Call to defend the gains. That requires reputation-event triggers wired to plan-tier upgrades, a remediation queue with measurable resolution time, and ROI attribution that the buyer can read in the same vocabulary as the score itself.',
+        mechanism: 'Today a business arrives at Caller Reputation, sees its score, and learns whether its numbers are mislabeled. Hiya\'s published State of the Call research names the demand: 53% of enterprise leaders report mislabels have lowered contact rates; 17% don\'t know if they\'ve been mislabeled. The mechanism is to take that diagnosis moment and turn it into a paid path: Number Registration to resolve mislabels, then Branded Call to defend the gains. That requires reputation-event triggers wired to plan-tier upgrades, a remediation queue with measurable resolution time, and ROI attribution that the buyer can read in the same vocabulary as the score itself.',
         whyTrue:    "Algard publicly framed Caller Reputation as a credit score for businesses, which is an activation-funnel framing in disguise. Hiya's own pricing already charges per delivered branded call rather than per attempt, so the instrumentation for usage-based monetization is already built. The customer pain (mislabel, lost contact rate) is acute and measurable, which is the precondition for an activation moment to convert.",
         whyWrong:   'Caller Reputation may be intentionally positioned as a moat rather than a funnel: free forever, no upsell, to make Hiya the trust intermediary across the industry. In that frame, instrumenting it as a paid-conversion engine could degrade the trust position that gives it standing in the first place. Activation-to-paid may also already be working internally, with the funnel bottleneck somewhere else (sales cycle length, integration complexity, finance approval).',
         resolves:   'Three signals. Internal: what is the current Caller-Reputation-to-paid-Connect conversion rate, and what shape does the funnel have today? External: do AT&T and the recent State of the Call respondents convert at materially different rates than direct sign-ups? Operational: is there an existing remediation workflow, and what is its median resolution time?',
@@ -2188,21 +2188,134 @@
   // ============================================================
   // SECTION 11 — Framework I'd Validate
   // ============================================================
+  const FRAMEWORK_CRITERIA = [
+    {
+      num: '1',
+      title: 'Where the activation funnel currently leaks most.',
+      why: 'The four hypotheses each propose a different intervention on the funnel. The intervention with the largest measurable leak in front of it has the highest expected ROI per dollar of build capacity. Discovery work in Phase 1 (§12) instruments the funnel; the leak shape determines which hypothesis benefits most.',
+      data: 'Conversion rates across each step of Caller Reputation, Number Registration, and Hiya Connect paid signup, broken out by segment (§09) and by carrier-of-origin. Stall points, drop-offs, and time-in-stage.',
+      affects: 'H1 (Caller Reputation as activation engine) is built on this question. If the leak is small or already addressed, H1 weakens.',
+    },
+    {
+      num: '2',
+      title: 'Which distribution path is most underused given the new carrier reach.',
+      why: 'Carrier launches in spring 2026 (Vodafone UK, Deutsche Telekom, O2 Telef\u00f3nica, MasOrange) created new top-of-funnel surface. The size of the gap between carrier reach and enterprise revenue per market is the size of the H3 opportunity. The bigger the gap, the more H3 dominates.',
+      data: 'Enterprise revenue per market versus carrier-distributed reach per market, with trendlines on each since each launch. Whether enterprise customers in a market entered through the carrier touchpoint or through direct outreach.',
+      affects: 'H3 (carrier pull-through). Also informs how H1 should be localized.',
+    },
+    {
+      num: '3',
+      title: 'Which competitive deadline binds the strategy hardest.',
+      why: 'The four hypotheses operate on different competitive clocks. The CTIA BCID rollout is binding on H1 in the US (the activation funnel needs to be ready when carriers complete BCID). Voice AI Agent commoditization is binding on H2 (the agent layer is consolidating fast). Deepfake voice fraud incidents are binding on H4 (security buyers will buy whichever vendor is ready). The hypothesis with the hardest external deadline gets priority on the timeline, regardless of which has the larger TAM.',
+      data: 'Public competitor timelines and recent launches, plus internal knowledge of partner conversations and security incidents. Not a single number; a calibrated read across three competitive clocks.',
+      affects: "All four, in different ways. The criterion's job is to surface which clock is loudest.",
+    },
+    {
+      num: '4',
+      title: 'Where product-engineering capacity is actually free.',
+      why: 'Strategy without operating reality is theatre. The hypothesis the team can ship in 90 to 180 days depends on which engineering surfaces have available capacity, which platform components already exist, and where dependencies on Connect, Protect, or Voice AI Agents would block a parallel motion. The right hypothesis is the one that can be moved within the operating constraint, not the one that looks best in a brief.',
+      data: 'Engineering capacity inventory by product line; existing platform components; current dependency map across Connect, Protect, Voice AI Agents, and AI Voice Detection; roadmap commitments already in flight.',
+      affects: 'Acts as a constraint on all four. A hypothesis that wins on Criteria 1 through 3 but loses badly here is still wrong for the first 90 days.',
+    },
+    {
+      num: '5',
+      title: 'Which hypothesis preserves the most optionality on the other three.',
+      why: 'Several of the four hypotheses are not strictly competing; some can be sequenced. H1 (Caller Reputation activation) creates funnel infrastructure that H2 (Voice AI Agents packaging) and H4 (AI Voice Detection productization) both inherit. H3 (carrier pull-through) is largely independent of the others. The criterion asks: which hypothesis, if executed first, leaves the most credible option to add the others in Q+1 or Q+2, versus closing off paths.',
+      data: 'Strategic mapping rather than numerical. The criterion is qualitative by design and pressure-tests the framework against tunnel vision.',
+      affects: 'Acts as a tiebreaker when Criteria 1 through 4 produce close calls.',
+    },
+  ];
+
+  const FRAMEWORK_IS_NOT = [
+    {
+      head: 'A scoring rubric with weights.',
+      body: 'Adding numerical weights to qualitative criteria creates false precision and obscures the actual judgment. The criteria are evaluated explicitly, not aggregated into a score.',
+    },
+    {
+      head: 'A commitment to the four hypotheses as the only options.',
+      body: "Discovery work in §12 may surface a fifth hypothesis the brief didn't consider. The framework's job is to evaluate the actual bets that emerge, not to lock in the four named here.",
+    },
+    {
+      head: 'A substitute for the leadership conversation.',
+      body: "Criteria 3 (competitive deadlines), 4 (capacity), and 5 (optionality) all require judgment from leaders with internal context. The framework helps structure that conversation; it doesn't replace it.",
+    },
+  ];
+
   const Framework = ({ sec }) => (
     <SectionShell sec={sec}>
       <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
         Not a prescription. The criteria I'd use to choose among the four.
       </h2>
-      <Placeholder
-        kind="decision framework · 4 to 5 criteria"
-        lines={[
-          'Criterion 1: which funnel stage is leaking most right now (data-led).',
-          'Criterion 2: which distribution path is most underused given the new carrier reach.',
-          'Criterion 3: which competitive deadline is hardest. The CTIA BCID rollout, the AI-agent commoditization race, the deepfake-detection productization window.',
-          'Criterion 4: internal-team capability inventory. Where is product-engineering capacity actually free.',
-          'Explicitly flagged as a framework, not a commitment. The §12 plan tests which criterion is binding.',
-        ]}
-      />
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        The four hypotheses in §02 are held in parallel because outside data can't resolve them. The 30-day discovery work in §12 generates the signal that picks one or two as primary; this section names the criteria that turn signal into decision. Each criterion below is something a Principal PM could measure or assess inside the first month. Together they form a decision frame, not a prescription. The frame is also explicitly <span className="italic">not</span> a scoring rubric, for reasons in the panel at the bottom.
+      </p>
+
+      {/* Five decision criteria */}
+      <div className="mt-12 space-y-5">
+        {FRAMEWORK_CRITERIA.map((c, i) => (
+          <article key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+            <div className="flex items-baseline gap-4">
+              <span className="font-mono text-accent tabnum text-sm shrink-0">Criterion {c.num}</span>
+              <h3 className="font-display font-bold text-ink text-lg md:text-xl leading-snug">{c.title}</h3>
+            </div>
+            <div className="mt-5 grid md:grid-cols-2 gap-x-6 gap-y-4">
+              <div>
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Why this is the right test</div>
+                <p className="mt-1 text-body/95 text-sm leading-relaxed">{c.why}</p>
+              </div>
+              <div>
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">What data resolves it</div>
+                <p className="mt-1 text-body/95 text-sm leading-relaxed">{c.data}</p>
+              </div>
+            </div>
+            <div className="mt-5 pt-4 border-t border-line/40">
+              <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-accent">Most affects</div>
+              <p className="mt-1 text-body/95 text-sm leading-relaxed">{c.affects}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* How the criteria combine */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> How the criteria combine
+        </div>
+        <p className="text-body leading-relaxed">
+          The framework above isn't an additive scoring sheet: Criterion 1 doesn't get points to add to Criterion 2's points. The criteria are filters applied in order. Criterion 4 (capacity reality) acts as a hard gate: a hypothesis without engineering capacity to ship is deprioritized regardless of the rest. Criteria 1 through 3 surface which hypothesis the data, distribution, and competitive clocks most favor. Criterion 5 breaks ties and pressure-tests for path-closing. In a clean case, one hypothesis dominates and the rest get parked. In a likely case, two hypotheses tie, and the right Q1 plan runs the dominant one as primary and the secondary as a parallel discovery thread inside the §12 plan.
+        </p>
+      </div>
+
+      {/* What this framework explicitly is not */}
+      <div className="mt-14 border border-warn/40 rounded-lg p-6 md:p-7 bg-surface/40">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+          <Dot tone="warn" /> What this framework explicitly is not
+        </div>
+        <p className="mt-4 text-body leading-relaxed">
+          A 90-day framework is partly defined by what it refuses to do. Three things this one isn't:
+        </p>
+        <ol className="mt-5 space-y-4">
+          {FRAMEWORK_IS_NOT.map((c, i) => (
+            <li key={i} className="flex gap-4">
+              <span className="font-mono text-warn tabnum text-[11px] mt-1 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                <div className="font-display font-bold text-ink text-sm md:text-base leading-snug">{c.head}</div>
+                <p className="mt-1.5 text-body/95 text-sm leading-relaxed">{c.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Closing synthesis */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent mb-4 flex items-center gap-2">
+          <Dot /> Synthesis
+        </div>
+        <p className="text-body leading-relaxed">
+          The framework above is the connective tissue between the diagnosis in §02 through §10 and the discovery plan in §12. Phase 1 of the 90-day plan instruments the data that Criterion 1 needs. Phase 2 tests the hypotheses against customer signal, which informs Criteria 2 and 3. Phase 3 pressure-tests the leading hypothesis with fake-door buyers, which validates Criterion 4 and informs Criterion 5. By Day 90, the framework's criteria should have enough signal to convert from "four parallel hypotheses" to "one primary bet, one parallel discovery thread, two deprioritized." The artifact at the end of Day 90 is the build-commitment review that names which hypothesis, on which criteria, against which data.
+        </p>
+      </div>
     </SectionShell>
   );
 
@@ -2444,7 +2557,7 @@
           Three career arcs map to the transition Hiya is asking someone to lead.
         </h2>
         <p className="mt-5 text-body max-w-3xl leading-relaxed">
-          The four hypotheses in §02 each ask someone to lead a specific kind of strategic transition. The career arcs below map to those transitions structurally, not just experientially. Each arc names what the work was, the wins it shipped, and where it bridges to the role. The two panels after are the parts of the brief that warrant honesty: the period I've been on a planned break, and the gap I would not claim away.
+          The four hypotheses in §02 each ask someone to lead a specific kind of strategic transition. The career arcs below map to those transitions structurally. The experiential overlap matters less than the architectural primitive each arc shipped. Each arc names what the work was, the wins it shipped, and where it bridges to the role. The two panels after are the parts of the brief that warrant honesty: the period I've been on a planned break, and the gap I would not claim away.
         </p>
 
         {/* Three career arcs */}
