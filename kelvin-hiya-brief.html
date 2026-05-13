@@ -1,0 +1,2685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Strategy Brief · Hiya · Kelvin Zee</title>
+  <meta name="description" content="A strategy brief on Hiya's enterprise-product opportunity, prepared for the Principal Product Manager role. By Kelvin Zee." />
+
+  <!-- Google Fonts: DM Sans (display, echoes Hiya's paid Eina 01) + Nunito Sans (body, direct from Hiya brand book) + JetBrains Mono (section numbers, stat tabulars) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Design tokens from the Hiya brief Design Token Spec
+    // Colors verified against Hiya brand guidelines (partners.hiya.com brand book)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg:      '#2F1761', // Hiya Neutral Purple (deep aubergine) — brand-book core color
+            surface: '#3D2585', // Lifted aubergine for cards/sections above bg
+            ink:     '#FFFFFF', // White text on aubergine (brand-book accessibility rule)
+            body:    '#E2DAFF', // Warm white with purple cast for body copy
+            muted:   '#9F92C7', // Desaturated purple-grey for labels/captions
+            accent:  '#6A44B9', // Hiya Logo Purple — the load-bearing brand color
+            warn:    '#FF6C29', // Hiya Warning Orange — direct from brand book
+            line:    '#4A2B8E', // Lifted aubergine for hairlines
+          },
+          fontFamily: {
+            display: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            body:    ['"Nunito Sans"', 'system-ui', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          letterSpacing: {
+            // Hiya brand sets headlines at -25 tracking (Hiya brand book)
+            tight25: '-0.025em',
+            // Hiya brand sets CTA text at +25 tracking
+            wide25:  '0.025em',
+            wide100: '0.10em',
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- React 18 + ReactDOM + Babel standalone for in-browser JSX (no build step) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Nunito Sans', system-ui, sans-serif;
+      background: #2F1761;
+      color: #E2DAFF;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    /* Hero radial — subtle deeper-aubergine glow off-center, replaces grain overlay */
+    .hero-radial {
+      background:
+        radial-gradient(60% 70% at 25% 30%, rgba(106,68,185,0.18) 0%, rgba(47,23,97,0) 70%),
+        radial-gradient(40% 50% at 80% 80%, rgba(106,68,185,0.12) 0%, rgba(47,23,97,0) 70%);
+    }
+    /* Hairline section divider */
+    .rule {
+      border-top: 1px solid rgba(106,68,185,0.25);
+    }
+    /* Status-dot indicator (signature motif) */
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 9999px;
+      background: #6A44B9;
+      box-shadow: 0 0 0 3px rgba(106,68,185,0.18);
+      vertical-align: middle;
+    }
+    /* Hanging quote */
+    .hang-quote::before {
+      content: '\201C';
+      font-family: 'DM Sans', sans-serif;
+      color: #6A44B9;
+      font-size: 64px;
+      line-height: 0.8;
+      margin-left: -28px;
+      margin-right: 8px;
+      vertical-align: -10px;
+    }
+    /* Custom scrollbar — purple-tinted for editorial feel */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #2F1761; }
+    ::-webkit-scrollbar-thumb { background: #4A2B8E; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6A44B9; }
+    /* Focus ring */
+    *:focus-visible { outline: 2px solid #6A44B9; outline-offset: 2px; border-radius: 2px; }
+    /* Mono tabular numerals */
+    .tabnum { font-variant-numeric: tabular-nums; }
+    /* Tier toggle styling */
+    .tier-btn { transition: background 120ms ease, color 120ms ease; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="env,react">
+  const { useState, useEffect, useMemo, useRef } = React;
+
+  // ============================================================
+  // READING TIERS
+  // 0 = Quick (3-min)   1 = Strategist (15-min)   2 = Panel (Full)
+  // ============================================================
+  const TIER = { quick: 0, strategist: 1, full: 2 };
+  const TIER_LABEL = {
+    quick:      { name: '3-min',  long: 'Quick',     desc: 'Recruiter scan'   },
+    strategist: { name: '15-min', long: 'Strategist',desc: 'Hiring manager'   },
+    full:       { name: 'Full Read', long: 'Panel',  desc: 'Peer interview'   },
+  };
+
+  // ============================================================
+  // SECTION MAP — single source of truth
+  // minTier: minimum reading-tier required for the section to render
+  // 0 = render always · 1 = strategist + full · 2 = full only
+  // ============================================================
+  const SECTIONS = [
+    { id: 'hero',       num: '01', title: 'TL;DR',                       minTier: 0 },
+    { id: 'hypotheses', num: '02', title: 'Hypotheses',                  minTier: 0 },
+    { id: 'setup',      num: '03', title: 'The Setup',                   minTier: 1 },
+    { id: 'analogy',    num: '04', title: 'The Analogy',                 minTier: 2 },
+    { id: 'stack',      num: '05', title: "Today's Trust Stack",         minTier: 1 },
+    { id: 'network',    num: '06', title: 'The Hiya Network',            minTier: 1 },
+    { id: 'field',      num: '07', title: 'The Field',                   minTier: 2 },
+    { id: 'buyer',      num: '08', title: 'The Buyer Shift',             minTier: 2 },
+    { id: 'segments',   num: '09', title: 'Segments',                    minTier: 2 },
+    { id: 'calculator', num: '10', title: 'Trusted Call Calculator',     minTier: 2 },
+    { id: 'framework',  num: '11', title: "Framework I'd Validate",      minTier: 1 },
+    { id: 'ninety',     num: '12', title: 'First 90 Days',               minTier: 1 },
+    { id: 'questions',  num: '13', title: 'Open Questions',              minTier: 2 },
+    { id: 'profile',    num: '14', title: 'Why This Profile',            minTier: 0 },
+  ];
+
+  // ============================================================
+  // SHARED COMPONENTS
+  // ============================================================
+  const Dot = ({ tone }) => {
+    if (tone === 'warn') {
+      return (
+        <span
+          className="dot"
+          style={{ background: '#FF6C29', boxShadow: '0 0 0 3px rgba(255,108,41,0.18)' }}
+          aria-hidden="true"
+        />
+      );
+    }
+    return <span className="dot" aria-hidden="true" />;
+  };
+
+  const Eyebrow = ({ num, label }) => (
+    <div className="flex items-center gap-3 text-muted">
+      <Dot />
+      <span className="font-mono text-xs tabnum tracking-wide100 uppercase">
+        §{num}
+      </span>
+      <span className="font-display font-bold text-xs tracking-wide100 uppercase">
+        {label}
+      </span>
+    </div>
+  );
+
+  const SectionShell = ({ sec, children }) => (
+    <section id={sec.id} className="scroll-mt-24 py-16 md:py-20">
+      <Eyebrow num={sec.num} label={sec.title} />
+      <div className="mt-6 md:mt-8">{children}</div>
+      <div className="rule mt-16 md:mt-20" />
+    </section>
+  );
+
+  // Visual placeholder used in undrafted sections.
+  // Communicates intent of the section without pretending to be content.
+  const Placeholder = ({ kind, lines }) => (
+    <div className="border border-dashed border-line/60 rounded-md p-5 md:p-6 bg-surface/30">
+      <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">
+        [ to draft · {kind} ]
+      </div>
+      <ul className="mt-3 space-y-2 text-body/90">
+        {lines.map((l, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="font-mono text-muted text-xs mt-1 tabnum">{String(i + 1).padStart(2, '0')}</span>
+            <span>{l}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  // ============================================================
+  // TOP NAV — title, tier toggle, mobile section menu
+  // ============================================================
+  const TopBar = ({ tier, setTier, onOpenNav }) => {
+    return (
+      <header className="sticky top-0 z-30 bg-bg/90 backdrop-blur-md border-b border-line/40">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-14 flex items-center justify-between gap-4">
+          <a href="#hero" className="flex items-center gap-3 group">
+            <Dot />
+            <span className="font-display font-bold text-ink tracking-tight25">
+              Strategy&nbsp;Brief
+            </span>
+            <span className="hidden sm:inline text-muted text-sm">·&nbsp;Hiya&nbsp;·&nbsp;Kelvin&nbsp;Zee</span>
+          </a>
+
+          <div className="flex items-center gap-2">
+            <TierToggle tier={tier} setTier={setTier} />
+            <button
+              onClick={onOpenNav}
+              className="md:hidden ml-2 px-3 py-1.5 rounded border border-line text-body text-sm hover:bg-surface"
+              aria-label="Open section menu"
+            >
+              §
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  };
+
+  const TierToggle = ({ tier, setTier }) => {
+    const keys = ['quick', 'strategist', 'full'];
+    return (
+      <div
+        className="flex items-center gap-0.5 p-0.5 rounded border border-line bg-surface/50"
+        role="tablist"
+        aria-label="Reading depth"
+      >
+        {keys.map((k) => {
+          const active = tier === k;
+          return (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTier(k)}
+              className={
+                'tier-btn px-2.5 py-1 rounded text-xs font-mono uppercase tracking-wide100 ' +
+                (active ? 'bg-accent text-ink' : 'text-muted hover:text-body')
+              }
+            >
+              {TIER_LABEL[k].name}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ============================================================
+  // SIDE NAV — sticky on desktop, modal on mobile
+  // ============================================================
+  const SideNav = ({ tier, activeId, navOpen, setNavOpen }) => {
+    const lvl = TIER[tier];
+    const visible = SECTIONS.filter((s) => s.minTier <= lvl);
+
+    const railList = (
+      <nav aria-label="Section navigation">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-3">
+          {visible.length} sections · {TIER_LABEL[tier].name}
+        </div>
+        <ol className="space-y-1.5">
+          {visible.map((s) => {
+            const active = s.id === activeId;
+            return (
+              <li key={s.id}>
+                <a
+                  href={'#' + s.id}
+                  onClick={() => setNavOpen(false)}
+                  className={
+                    'flex items-baseline gap-3 py-1 group ' +
+                    (active ? 'text-ink' : 'text-muted hover:text-body')
+                  }
+                >
+                  <span className={'font-mono text-[11px] tabnum w-6 ' + (active ? 'text-accent' : '')}>
+                    {s.num}
+                  </span>
+                  <span className="font-display text-sm leading-snug">{s.title}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+        <div className="rule mt-6 pt-4 text-xs text-muted leading-relaxed">
+          A measured strategy memo, not a pitch. Confidence on diagnosis, humility on prescription.
+        </div>
+      </nav>
+    );
+
+    return (
+      <>
+        {/* Desktop rail */}
+        <aside className="hidden md:block sticky top-14 self-start max-h-[calc(100vh-3.5rem)] overflow-y-auto py-12 pr-6">
+          {railList}
+        </aside>
+
+        {/* Mobile modal */}
+        {navOpen && (
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-bg/95 backdrop-blur-md p-6 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <span className="font-display font-bold text-ink">Sections</span>
+              <button
+                onClick={() => setNavOpen(false)}
+                className="px-3 py-1.5 rounded border border-line text-body text-sm"
+              >
+                Close
+              </button>
+            </div>
+            {railList}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // ============================================================
+  // HERO STATS — four headline numbers with source attribution
+  // ============================================================
+  const HERO_STATS = [
+    {
+      n: '500M+',
+      label: "users on Hiya's network globally",
+      source: 'Hiya / Crunchbase',
+    },
+    {
+      n: '86%',
+      label: 'of unidentified calls go unanswered',
+      source: 'State of the Call 2026',
+    },
+    {
+      n: 'Up to 50%',
+      label: 'answer-rate lift cited for Branded Call',
+      source: 'Hiya / O2 Telef\u00f3nica, Feb 2026',
+    },
+    {
+      n: '~100%',
+      label: 'of UK mobile post-Vodafone launch',
+      source: 'Vodafone, Mar 2026',
+    },
+  ];
+
+  // ============================================================
+  // READING-TIME NAVIGATOR — three cards, each also acts as a tier toggle
+  // ============================================================
+  const READING_TIERS = [
+    {
+      action:   'quick',
+      time:     '3 min',
+      sections: "\u00a701, \u00a702 (one-liners), \u00a714 (compact)",
+    },
+    {
+      action:   'strategist',
+      time:     '15 min',
+      sections: "\u00a701, 02 (mechanism), 03, 05, 06, 11, 12, 14",
+    },
+    {
+      action:   'full',
+      time:     'Full Read',
+      sections: 'All 14 sections, including hypothesis four-lens, segments, and the calculator',
+    },
+  ];
+
+  // ============================================================
+  // SECTION 01 — Hero / TL;DR
+  // Renders at every tier; depth scales with tier.
+  // ============================================================
+  const Hero = ({ sec, tier, setTier }) => {
+    return (
+      <section id={sec.id} className="scroll-mt-24 hero-radial -mx-5 md:-mx-8 px-5 md:px-8 pt-10 md:pt-16 pb-16 md:pb-20">
+        {/* Kicker: role + company + date */}
+        <div className="font-mono text-xs tabnum text-muted/80 tracking-wide25">
+          Principal Product Manager Brief · Prepared for Hiya · May 2026
+        </div>
+
+        <div className="mt-5">
+          <Eyebrow num={sec.num} label="TL;DR" />
+        </div>
+
+        {/* H1 — ~28 words, strong + leak + framework, no aphorism */}
+        <h1 className="mt-6 font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl lg:text-5xl leading-[1.1] max-w-4xl">
+          Hiya's distribution at carrier and OEM scale is the moat; the wedge for this role is enterprise activation pull-through that compounds on the network rather than competing with it.
+        </h1>
+
+        {/* Paragraph 1 — who I am */}
+        <p className="mt-10 max-w-2xl text-body text-base md:text-lg leading-relaxed">
+          Senior product leader, 18+ years on subscription, billing, lifecycle, and engagement platforms at Amazon Prime and T-Mobile. At Prime (L7), I owned the global benefit-activation platform across 26 country PM teams, associated with +23% renewals and 30M+ monthly benefit utilizations. Earlier at T-Mobile, Billing & Benefits became the #1 digital property by MAU: +204% one-time payment completion, +76% recurring setup, +23% CLV, 43% reduction in billing-related care calls. Currently on a stabilized caregiving break, with daily AI tooling practice across Claude Code, Codex, and ChatGPT.
+        </p>
+
+        {/* Paragraph 2 — what this brief is */}
+        <p className="mt-6 max-w-2xl text-body text-base md:text-lg leading-relaxed">
+          This brief is a measured strategy memo, not a pitch. It works from public sources to diagnose where Hiya's enterprise SaaS opportunity sits as three forces collide on the trust layer of business calling: the delivery layer standardizing on CTIA BCID, the network reach expanding materially in spring 2026, and the product surface shifting from identity to automation. The hypotheses below are held in parallel until the first 30 days resolve them. Where I lack internal data, I name the gap rather than guess.
+        </p>
+
+        {/* TL;DR thesis box — diagnosis / leak / whitespace */}
+        <div className="mt-8 max-w-3xl border border-line/60 rounded-lg bg-surface/40 p-5 md:p-6">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+            <Dot /> If you only read three lines
+          </div>
+          <ol className="mt-4 space-y-3.5 text-body text-sm md:text-base leading-relaxed">
+            <li className="flex gap-3">
+              <span className="font-mono text-accent tabnum text-[11px] mt-1.5 shrink-0">01</span>
+              <span>
+                <span className="text-ink font-semibold">Diagnosis.</span>{' '}
+                Hiya's distribution at carrier and OEM scale is the asymmetric moat: Samsung through 2028, Vodafone UK at ~100% coverage, 90%+ of Germany via O2 Telef&oacute;nica and Deutsche Telekom. Free Protect feeds the network while paid Connect monetizes the businesses.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-accent tabnum text-[11px] mt-1.5 shrink-0">02</span>
+              <span>
+                <span className="text-ink font-semibold">Leak.</span>{' '}
+                The activation funnel from free Caller Reputation (launched Sep 30, 2025 with AT&amp;T) into paid Hiya Connect is the most plausible place compounding is being left on the table, since carrier reach just expanded faster than enterprise activation typically follows.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-accent tabnum text-[11px] mt-1.5 shrink-0">03</span>
+              <span>
+                <span className="text-ink font-semibold">Whitespace.</span>{' '}
+                The wedge for this role is enterprise activation pull-through across one or more of: Caller Reputation as activation engine, Voice AI Agents beta-to-GA packaging, or localized enterprise activation in the newly-lit carrier markets.
+              </span>
+            </li>
+          </ol>
+        </div>
+
+        {/* Four headline stats from HERO_STATS, with source attribution */}
+        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6">
+          {HERO_STATS.map((s, i) => (
+            <div key={i}>
+              <div className="font-mono text-2xl md:text-3xl tabnum text-accent leading-none">{s.n}</div>
+              <div className="mt-3 text-sm text-body leading-snug">{s.label}</div>
+              <div className="mt-1.5 font-mono text-[10px] tabnum text-muted/80 leading-snug">{s.source}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Reading-time navigator cards — also act as tier toggle */}
+        <div className="mt-14">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> Reading guide
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {READING_TIERS.map((r, i) => {
+              const active = tier === r.action;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setTier(r.action)}
+                  className={
+                    'text-left p-4 rounded-lg border tier-btn ' +
+                    (active
+                      ? 'border-accent bg-accent/10 text-ink'
+                      : 'border-line/60 bg-surface/30 text-body hover:border-accent/60')
+                  }
+                  aria-pressed={active}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-display font-bold text-base">{r.time}</span>
+                    <span
+                      className={
+                        'font-mono text-[10px] tabnum uppercase tracking-wide100 ' +
+                        (active ? 'text-accent' : 'text-muted')
+                      }
+                    >
+                      {active ? 'active' : 'tap'}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-xs text-muted leading-relaxed">{r.sections}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rule mt-16" />
+      </section>
+    );
+  };
+
+  // ============================================================
+  // SECTION 03 — The Setup: three forces colliding
+  // ============================================================
+  const SETUP_CARDS = [
+    {
+      tag: 'The Standard',
+      head: "The delivery layer of branded calling is standardizing on CTIA's BCID framework.",
+      body: "CTIA's Branded Calling ID is consolidating as the US standard, with SecureG as the sole certificate authority. T-Mobile is already live; Verizon and AT&T are preparing launches. STIR/SHAKEN authentication is widely treated as a partial solution to spam labeling, since modern carrier labels rely heavily on behavioral signals (call volume, redial patterns, complaint rates) that authentication alone doesn't resolve.",
+      stat: 'CTIA BCID · T-Mobile live, Verizon and AT&T preparing',
+    },
+    {
+      tag: 'The Network',
+      head: "Hiya's carrier reach expanded materially in spring 2026, ahead of typical enterprise activation cycles.",
+      body: 'Vodafone UK launched in March 2026, covering nearly all of the UK mobile market. Deutsche Telekom (January 2026) and O2 Telef\u00f3nica (February 2026) together cover 90%+ of Germany. MasOrange added Spain in November 2025, on top of Telenor across Norway since February 2025. The Samsung partnership runs through 2028.',
+      stat: 'Vodafone UK, Mar 2026 · ~100% UK coverage',
+    },
+    {
+      tag: 'The Surface',
+      head: 'The product surface is shifting from displaying who calls to automating the call itself.',
+      body: 'Hiya launched Voice AI Agents in beta in August 2025, the category move from identity into voice automation. At Mobile World Congress in February 2026, Hiya reported 1 in 4 reviewed calls contain AI-generated audio. State of the Call 2026 (published April 14, 12,000+ consumers across six countries) shows 86% of consumers no longer answer unidentified calls, up from 80% in 2025.',
+      stat: "State of the Call 2026 · 86% don't answer unidentified calls",
+    },
+  ];
+
+  const Setup = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Three forces are colliding on the trust layer of business calling.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        The four hypotheses in §02 sit on top of three external forces that have all moved in the last 18 months. Each force shifts what a Principal PM can plausibly own in the next 90 to 180 days. Each is documented enough in public material to anchor a discovery plan, but not enough to commit to a specific bet from outside the company.
+      </p>
+
+      <div className="mt-10 grid md:grid-cols-3 gap-5">
+        {SETUP_CARDS.map((c, i) => (
+          <article
+            key={i}
+            className="border border-line/60 rounded-lg p-6 bg-surface/40 flex flex-col"
+          >
+            <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+              <Dot /> {c.tag}
+            </div>
+            <h3 className="mt-4 font-display font-bold text-ink text-lg md:text-xl leading-snug">
+              {c.head}
+            </h3>
+            <p className="mt-4 text-body text-sm leading-relaxed flex-grow">
+              {c.body}
+            </p>
+            <div className="mt-5 pt-4 border-t border-line/40 font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">
+              {c.stat}
+            </div>
+          </article>
+        ))}
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 04 — The Analogy: SMS deliverability and 10DLC
+  // Interactive 6-phase timeline; Phase 4 is the pivot, default selected.
+  // ============================================================
+  const ANALOGY_PHASES = [
+    {
+      num:          '1',
+      shortTitle:   'Long codes',
+      years:        '2012-2018',
+      title:        'The Long-Codes Era',
+      fullYears:    '~2012 to 2018',
+      isPivot:      false,
+      whatChanged:  'Businesses sent SMS through unregistered 10-digit numbers at flat per-message rates. No identity layer; no trust signal beyond the number itself.',
+      buyerSide:    'Contact-center and marketing managers bought directly from SMS vendors. Friction was near zero.',
+      economicSide: 'Flat per-message pricing. Low margins for carriers. Spam scaled with the channel.',
+      voiceAnalog:  'Pre-STIR/SHAKEN voice, which is most calling for most of history.',
+    },
+    {
+      num:          '2',
+      shortTitle:   'Spam crisis',
+      years:        '2017-2019',
+      title:        'The Spam Crisis',
+      fullYears:    '~2017 to 2019',
+      isPivot:      false,
+      whatChanged:  "Spam volume grew faster than the channel could carry. Carriers responded with internal filtering rules that businesses couldn't see or appeal.",
+      buyerSide:    "Legitimate senders started getting filtered without recourse. Marketing teams discovered their messages weren't arriving.",
+      economicSide: 'Pressure on carriers to systemize labeling. A new vendor category emerged: deliverability and remediation services.',
+      voiceAnalog:  'The current "53% of enterprise leaders report mislabels lowered contact rates" moment.',
+    },
+    {
+      num:          '3',
+      shortTitle:   'TCR launches',
+      years:        '2018-2020',
+      title:        'The Campaign Registry Launches',
+      fullYears:    '~2018 to 2020',
+      isPivot:      false,
+      whatChanged:  'TCR (The Campaign Registry), a carrier-consortium effort, launched as the registration and reputation framework. Voluntary at first.',
+      buyerSide:    'Early adopters registered to get throughput priority and recourse against mislabeling.',
+      economicSide: 'SMS vendors (Twilio, Bandwidth, Sinch) added registration to their stack. New fees layered on top of per-message pricing.',
+      voiceAnalog:  "Where Hiya's Number Registration sits today, with the CTIA BCID framework consolidating around it.",
+    },
+    {
+      num:          '4',
+      shortTitle:   'Mandatory 10DLC',
+      years:        '2021-2022',
+      title:        'Mandatory 10DLC',
+      fullYears:    '~2021 to 2022',
+      isPivot:      true,
+      whatChanged:  'AT&T, T-Mobile, and Verizon required 10DLC registration. Unregistered traffic was throttled or blocked. The trust layer became operating infrastructure, not optional.',
+      buyerSide:    'Every business sending high-volume A2P SMS had to register or stop sending. Procurement of trust-layer tooling became a hard requirement for operating at scale.',
+      economicSide: 'Per-message fees added on top of carrier charges, tiered by trust score. Vendor margins compounded for the integrated trust intermediaries.',
+      voiceAnalog:  'This is what CTIA BCID is becoming. T-Mobile is already there; Verizon and AT&T are next.',
+    },
+    {
+      num:          '5',
+      shortTitle:   'Reputation scoring',
+      years:        '2022-2024',
+      title:        'Reputation Scoring',
+      fullYears:    '~2022 to 2024',
+      isPivot:      false,
+      whatChanged:  'Trust scores per brand and per campaign drove throughput limits and pricing tiers. Reputation became a managed business asset.',
+      buyerSide:    'Marketing and product teams added "manage SMS reputation" to the standing list. Remediation became a recurring operating workflow, not a one-time setup.',
+      economicSide: 'Better reputation meant higher throughput and lower per-message costs. Worse reputation meant deliverability collapse and revenue loss.',
+      voiceAnalog:  "Hiya Caller Reputation (Sep 2025) sits here, but earlier in the adoption curve. The activation engine isn't fully instrumented yet.",
+    },
+    {
+      num:          '6',
+      shortTitle:   'Branded messaging',
+      years:        '2024-present',
+      title:        'Branded Messaging',
+      fullYears:    '~2024 to present',
+      isPivot:      false,
+      whatChanged:  'RCS Business Messaging and verified sender programs added a visual identity surface to messages. Logos, branded names, verified checkmarks in the inbox.',
+      buyerSide:    'Marketing teams paid for the identity surface as a brand investment, not just a deliverability one. Buyer composition expanded beyond contact-center ops.',
+      economicSide: 'Usage-based pricing tied to branded display. Reputation, identity, and delivery compounded into stacked monetization.',
+      voiceAnalog:  'Hiya Branded Call. Hiya is structurally ahead of the SMS timeline on this surface (Branded Call has been live for years), but enterprise activation is still catching up to the surface.',
+    },
+  ];
+
+  const ANALOGY_WORKS = [
+    'Same primitive: businesses must register, prove identity, and build reputation to be trusted at the channel layer.',
+    'Same regulatory architecture: a carrier-consortium standard (TCR for SMS, CTIA BCID for voice) becomes the de facto operating requirement, and unregistered traffic is throttled or blocked.',
+    'Same trust-as-product economics: reputation drives throughput and pricing tiers; reputation is a managed asset, not a one-time setup.',
+    'Same vendor stack pattern: registry layer + reputation management + branded-display surface, all stacked on top of carrier integration.',
+    'Same activation lag: regulatory pressure creates the surface, but enterprise adoption trails by 12 to 24 months. The lag is the activation wedge.',
+    'Same competitive end-state: trust intermediaries that own the carrier integration and the identity surface together compound. Pure-play reputation managers without distribution get squeezed or acquired.',
+  ];
+
+  const ANALOGY_BREAKS = [
+    "SMS has no OEM analog. Samsung's pre-installed Smart Call through 2028 gives Hiya a device-level surface that no SMS vendor had, which changes the distribution math.",
+    "SMS has no agent-automation layer. Voice AI Agents puts Hiya into a category SMS never developed; packaging precedent doesn't transfer.",
+    'The threat surface is different. Deepfake voice fraud is a security-buyer problem with a separate budget; SMS phishing was mostly a marketing-deliverability problem.',
+    "Pricing structures don't translate cleanly. SMS is per-message; voice has per-call, per-minute, per-delivered-display, and per-conversation models in play simultaneously.",
+    'The geography is different from the start. SMS reputation was a US-first story for years; branded calling is global from year one (UK, Germany, Spain, Norway), so localized packaging matters earlier and harder.',
+    'The buyer composition is wider. SMS reputation lived mostly in marketing and ops; voice pulls in marketing, sales ops (for AI agents), security and risk (for deepfake detection), and compliance simultaneously.',
+  ];
+
+  const Analogy = ({ sec }) => {
+    // Phase 4 (index 3) is the pivot; default selected so reader lands on the most important moment.
+    const [selectedIdx, setSelectedIdx] = useState(3);
+    const phase = ANALOGY_PHASES[selectedIdx];
+
+    return (
+      <SectionShell sec={sec}>
+        <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+          Voice is following the arc that SMS already traced.
+        </h2>
+        <p className="mt-5 text-body max-w-3xl leading-relaxed">
+          The closest precedent for branded voice calling isn't voice. It's SMS. Between roughly 2018 and 2024, business-to-consumer SMS in the US went through a regulatory and trust transition that mirrors what's happening to voice now, on a compressed timeline. The vendors that compounded weren't the ones with the best filtering tech; they were the ones that owned the carrier integration and registration layers together, then built reputation tooling on top of that distribution. The analogy isn't perfect, and the differences are named below. But the shape of the transition and the vendor positions that emerged are instructive.
+        </p>
+
+        {/* Phase ribbon */}
+        <div className="mt-12">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> SMS deliverability timeline · tap a phase
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ANALOGY_PHASES.map((p, i) => {
+              const active = i === selectedIdx;
+              const baseCls = 'tier-btn relative text-left px-3 py-2 rounded-md border ';
+              const stateCls = active
+                ? 'border-accent bg-accent/15 text-ink'
+                : (p.isPivot
+                  ? 'border-accent/60 bg-surface/40 text-body hover:bg-accent/10'
+                  : 'border-line/60 bg-surface/30 text-body hover:border-accent/60');
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedIdx(i)}
+                  className={baseCls + stateCls}
+                  aria-pressed={active}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-[10px] tabnum text-muted">P{p.num}</span>
+                    {p.isPivot && (
+                      <span className="font-mono text-[9px] tabnum text-accent uppercase tracking-wide100">
+                        pivot
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 font-display font-bold text-sm leading-tight">{p.shortTitle}</div>
+                  <div className="font-mono text-[10px] tabnum text-muted/80">{p.years}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Detail panel for selected phase */}
+        <div className="mt-6 border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="font-mono text-accent tabnum text-sm">Phase {phase.num}</span>
+            {phase.isPivot && (
+              <span className="font-mono text-[10px] tabnum text-accent uppercase tracking-wide100 px-2 py-0.5 border border-accent/60 rounded inline-flex items-center gap-1.5">
+                <Dot /> Pivot
+              </span>
+            )}
+            <h3 className="font-display font-bold text-ink text-xl md:text-2xl leading-snug">
+              {phase.title}
+            </h3>
+            <span className="font-mono text-xs tabnum text-muted/80">{phase.fullYears}</span>
+          </div>
+
+          <div className="mt-6 grid md:grid-cols-2 gap-5 md:gap-6">
+            <div>
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">What changed</div>
+              <p className="mt-2 text-body/95 text-sm leading-relaxed">{phase.whatChanged}</p>
+            </div>
+            <div>
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">Buyer-side</div>
+              <p className="mt-2 text-body/95 text-sm leading-relaxed">{phase.buyerSide}</p>
+            </div>
+            <div>
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">Economic-side</div>
+              <p className="mt-2 text-body/95 text-sm leading-relaxed">{phase.economicSide}</p>
+            </div>
+            <div>
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">Voice analog</div>
+              <p className="mt-2 text-body/95 text-sm leading-relaxed">{phase.voiceAnalog}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Works / Breaks two-column panel */}
+        <div className="mt-14 grid md:grid-cols-2 gap-6">
+          <div className="border border-line/60 rounded-lg p-6 bg-surface/30">
+            <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+              <Dot /> Where this analogy works
+            </div>
+            <ol className="mt-5 space-y-3.5 text-body/95 text-sm leading-relaxed">
+              {ANALOGY_WORKS.map((b, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="font-mono text-accent tabnum text-[11px] mt-1 shrink-0">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="border border-line/60 rounded-lg p-6 bg-surface/30">
+            <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+              <Dot tone="warn" /> Where this analogy breaks
+            </div>
+            <ol className="mt-5 space-y-3.5 text-body/95 text-sm leading-relaxed">
+              {ANALOGY_BREAKS.map((b, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="font-mono text-warn tabnum text-[11px] mt-1 shrink-0">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+
+        {/* Pull quote */}
+        <div className="mt-14 pl-10 max-w-3xl">
+          <p className="hang-quote font-display italic text-ink text-lg md:text-xl leading-relaxed">
+            The 10DLC arc rewarded vendors that integrated carrier relationships, registration, and reputation into a single stack. Hiya already occupies that position in voice. The work this role inherits is the activation motion between the network and enterprise revenue, which is what the SMS story reached last and what competitors are still trying to commoditize.
+          </p>
+        </div>
+      </SectionShell>
+    );
+  };
+
+  // ============================================================
+  // SECTION 05 — Today's Trust Stack
+  // ============================================================
+  const STACK_PRODUCTS = [
+    {
+      name:        'Hiya Connect',
+      status:      'Live',
+      tagline:     'Branded calling, number registration, and reputation reporting, sold to businesses as enterprise SaaS.',
+      whoPays:     'Businesses, directly.',
+      monetization:'Per-branded-call usage, $25 setup, self-service tiers from 250 to 50,000+ calls/mo in four markets, 12-month custom contracts everywhere else.',
+    },
+    {
+      name:        'Hiya Protect',
+      status:      'Live',
+      tagline:     'Spam blocking and call labeling, distributed at the carrier and OEM layer.',
+      whoPays:     'Carriers and OEMs.',
+      monetization:'Carrier and OEM contracts (Samsung through 2028, AT&T, T-Mobile, Vodafone UK, Deutsche Telekom, O2 Telef\u00f3nica, MasOrange, Telenor, BT/EE, Virgin Media O2, Bell, Rogers). Free for businesses to be labeled honestly. Powers roughly 500M users globally.',
+    },
+    {
+      name:        'Voice AI Agents',
+      status:      'Beta (Aug 2025)',
+      tagline:     'Inbound and outbound conversational AI, sold to businesses as enterprise SaaS.',
+      whoPays:     'Businesses, directly.',
+      monetization:'Not yet public. Beta since August 13, 2025. Packaging is the open commercial question (see \u00a702 H2).',
+    },
+    {
+      name:        'Hiya Apps',
+      status:      'Live (consumer)',
+      tagline:     'Consumer Spam Blocker (mobile) and Hiya AI Phone (consumer AI call assistant, launched January 2025).',
+      whoPays:     'Consumers (freemium) or carriers (bundled distribution).',
+      monetization:"Freemium plus carrier bundling. Outside this role's likely scope; included here for completeness.",
+    },
+  ];
+
+  const CONNECT_PRICING = [
+    { mechanic: 'Setup fee',                detail: '$25 one-time, per business onboarding.' },
+    { mechanic: 'Billing trigger',          detail: 'Per branded call that actually displays on a supported network and device, not per call attempted. The customer is charged only when the trust signal lands.' },
+    { mechanic: 'Self-service tier range',  detail: '250 to 50,000+ branded calls per month, with five published steps in between.' },
+    { mechanic: 'Self-service markets',     detail: 'United States, United Kingdom, Canada, Australia.' },
+    { mechanic: 'Non-self-service floor',   detail: 'Roughly $550/month entry point for markets outside the self-service four.' },
+    { mechanic: 'Custom contracts',         detail: '12-month terms for enterprise volume and for markets without self-service tiers.' },
+    { mechanic: 'Promotions',               detail: 'First month free, currently active in Canada and Australia only.' },
+  ];
+
+  const STACK_WOULD_NOT_CLAIM = [
+    {
+      head: 'The free-for-business posture is permanent.',
+      body: "It's a strategic choice today; competitive pressure, capital strategy, or a Voice AI Agents commercialization decision could shift it within 12 to 24 months.",
+    },
+    {
+      head: 'The per-displayed-call billing is purely customer-friendly.',
+      body: "It's customer-favorable on attribution but creates a verification dependency, and likely makes revenue forecasting harder than per-attempt billing would.",
+    },
+    {
+      head: 'The self-service tier breaks are optimized for activation.',
+      body: 'The published steps (250, 1k, 5k, 25k, 50k+) are documented; whether they map to actual customer-volume distribution and to where customers stall is internal data.',
+    },
+    {
+      head: 'The carrier-side gross-margin economics are visible from outside.',
+      body: 'Anything specific about the revenue mix between Protect contracts and Connect SaaS would be speculation.',
+    },
+  ];
+
+  const TrustStack = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Hiya runs four product lines on two distinct monetization models.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        Hiya runs two commercial models simultaneously: free-to-business surfaces (Protect, Caller Reputation) monetized through carriers and OEMs, and enterprise SaaS surfaces (Connect, Voice AI Agents) sold directly to businesses. The activation seam between the two is where this role plausibly lives.
+      </p>
+
+      {/* Four product lines — 2x2 grid on desktop */}
+      <div className="mt-12">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> The four product lines
+        </div>
+        <div className="grid md:grid-cols-2 gap-5">
+          {STACK_PRODUCTS.map((p, i) => (
+            <article key={i} className="border border-line/60 rounded-lg p-6 bg-surface/40 flex flex-col">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="font-display font-bold text-ink text-lg md:text-xl leading-snug">{p.name}</h3>
+                <span className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted shrink-0">
+                  {p.status}
+                </span>
+              </div>
+              <p className="mt-3 text-body text-sm leading-relaxed">{p.tagline}</p>
+              <div className="mt-5 pt-4 border-t border-line/40 space-y-3">
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Who pays</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.whoPays}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Monetization</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.monetization}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      {/* Hiya Connect pricing mechanics */}
+      <div className="mt-14">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> Hiya Connect: the pricing mechanics
+        </div>
+        <p className="text-body max-w-3xl leading-relaxed">
+          Most of what this role would own commercially sits inside Hiya Connect's pricing surface. The mechanics are publicly documented:
+        </p>
+        <dl className="mt-6 border border-line/60 rounded-lg bg-surface/40 divide-y divide-line/40">
+          {CONNECT_PRICING.map((m, i) => (
+            <div key={i} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-2 md:gap-6 p-4 md:p-5">
+              <dt className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">{m.mechanic}</dt>
+              <dd className="text-body/95 text-sm leading-relaxed">{m.detail}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-6 text-body max-w-3xl leading-relaxed">
+          The per-displayed-call billing is unusually customer-favorable for a B2B SaaS surface. It also creates a verification dependency the customer has to trust: that Hiya can accurately detect whether the branded call rendered on the receiving device.
+        </p>
+      </div>
+
+      {/* The deliberate design choice */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> The deliberate design choice
+        </div>
+        <p className="text-body leading-relaxed">
+          The split between free-for-business and paid-for-business surfaces isn't a pricing accident. It's a strategic choice that does specific work: it lets Hiya act as a trust intermediary in the carrier-mediated voice channel without forcing every business to pay for the privilege of being honestly labeled. The carriers and OEMs underwrite the trust layer that businesses then build on top of. That posture is the difference between a vendor and a piece of infrastructure.
+        </p>
+        <p className="mt-5 text-body leading-relaxed">
+          Caller Reputation, launched September 30, 2025 with AT&T as the originating carrier, is the most visible manifestation of this design choice. Hiya describes it as "a credit score for business calls": a free, public-facing reputation score that any business can check. The cost structure means Hiya can credibly hold that frame; competitors that have to monetize reputation directly can't.
+        </p>
+        <p className="mt-5 text-body leading-relaxed">
+          Pricing architectures that operate cleanly across legal, finance, care, retail, billing, and customer-delivery functions are the result of deliberate design choices. The cleanness of Hiya's free-vs-paid split suggests this one was made with intention.
+        </p>
+      </div>
+
+      {/* What I would not claim */}
+      <div className="mt-14 border border-warn/40 rounded-lg p-6 md:p-7 bg-surface/40">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+          <Dot tone="warn" /> What I would not claim about this architecture
+        </div>
+        <ol className="mt-5 space-y-4">
+          {STACK_WOULD_NOT_CLAIM.map((c, i) => (
+            <li key={i} className="flex gap-4">
+              <span className="font-mono text-warn tabnum text-[11px] mt-1 shrink-0">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <div>
+                <div className="font-display font-bold text-ink text-sm md:text-base leading-snug">{c.head}</div>
+                <p className="mt-1.5 text-body/95 text-sm leading-relaxed">{c.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Synthesis paragraph */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent mb-4 flex items-center gap-2">
+          <Dot /> Synthesis
+        </div>
+        <p className="text-body leading-relaxed">
+          The architecture above is the precondition for all four hypotheses in §02. H1 (Caller Reputation as activation engine) lives at the seam between the free and paid surfaces. H2 (Voice AI Agents to GA) is the question of how a new paid surface is priced and positioned next to the existing ones. H3 (carrier pull-through) is the question of how the free surfaces feed the paid surfaces in markets where the carriers just lit up. H4 (AI Voice Detection as security product) is the question of whether the architecture should grow a fifth product line for a different buyer. The architecture doesn't choose between the four; it constrains the shape each one would have to take.
+        </p>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 06 — The Hiya Network
+  // ============================================================
+  const NETWORK_REGIONS = [
+    {
+      name: 'North America',
+      carriers: [
+        { c: 'AT&T (US)',     note: 'Protect partner; co-launched Caller Reputation on September 30, 2025.' },
+        { c: 'T-Mobile (US)', note: 'Protect partner; CTIA BCID early-launch carrier.' },
+        { c: 'Bell (Canada)', note: 'Protect partner; disclosed Hiya customer.' },
+        { c: 'Rogers (Canada)', note: 'Protect partner; disclosed Hiya customer.' },
+      ],
+      combined: 'Nationwide coverage in both US and Canada.',
+    },
+    {
+      name: 'United Kingdom',
+      carriers: [
+        { c: 'Vodafone UK',       note: 'Branded Call launch March 2026, covering ~100% of UK mobile.' },
+        { c: 'BT/EE',             note: 'Protect partner; long-standing relationship.' },
+        { c: 'Virgin Media O2',   note: 'Protect partner; disclosed Hiya customer.' },
+      ],
+      combined: 'Nearly the entire UK mobile market.',
+    },
+    {
+      name: 'Continental Europe',
+      carriers: [
+        { c: 'Deutsche Telekom (Germany)',  note: 'Branded Call launch January 2026.' },
+        { c: 'O2 Telef\u00f3nica (Germany)', note: 'Branded Call launch February 2026.' },
+        { c: 'MasOrange (Spain)',            note: 'Branded Call launch November 2025.' },
+        { c: 'Telenor (Norway)',             note: 'Branded Call launch February 2025.' },
+      ],
+      combined: '90%+ of German mobile, nationwide-scale in Norway and Spain.',
+    },
+  ];
+
+  const NETWORK_COVERAGE_STATS = [
+    { n: '500M+',         label: 'users globally on the Hiya Network.' },
+    { n: '~100%',         label: 'UK mobile coverage post-Vodafone (March 2026).' },
+    { n: '90%+',          label: 'German mobile coverage via Deutsche Telekom and O2 Telef\u00f3nica.' },
+    { n: 'Through 2028',  label: 'Samsung partnership horizon.' },
+  ];
+
+  const NETWORK_MOAT_IS = [
+    'Years-long integration into carrier and OEM call-routing infrastructure that takes new entrants comparable years to replicate.',
+    'Decision rights to label, brand, and authenticate calls at the network layer, plus device-level rights through Samsung.',
+    'Cumulative consumer-side learning (users come to trust Hiya\u2019s labeling as reliable, which raises the cost of carrier switching to a different vendor).',
+    'Multi-year contracts, including Samsung through 2028, that aren\u2019t easily switched on quarterly cycles.',
+  ];
+
+  const NETWORK_MOAT_ISNT = [
+    'A guarantee against in-house carrier analytics: T-Mobile, Verizon, and AT&T could in principle expose reputation insights directly, which is the substitutional risk named in \u00a707 Field.',
+    'Defensible against a determined Apple or Google decision to build trust labeling at the OS level, which would route around carrier and OEM layers entirely.',
+    'Universally distributed: there are gaps in most of Asia (outside Samsung-distributed coverage), most of Africa, and parts of Latin America.',
+    'Free from regulatory or geopolitical risk that could force contract renegotiation, especially in markets with active telecom-sector regulation.',
+  ];
+
+  const Network = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Distribution at carrier and OEM scale is the asymmetric moat.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        The trust stack from §05 sits on top of distribution that competitors can't replicate quickly. Hiya runs carrier integrations across the United States, United Kingdom, Continental Europe, and Canada, plus an OEM partnership with Samsung that runs through 2028. The combined surface reaches roughly 500M users globally. Most of this distribution was secured years ago through enterprise-grade contracts that don't expire on quarterly cycles; the recent activity has been adding carrier-mediated branded calling launches on top of existing protect-layer relationships.
+      </p>
+
+      {/* Regional carrier map: three side-by-side cards on desktop */}
+      <div className="mt-12">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> The map, by region
+        </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {NETWORK_REGIONS.map((r, i) => (
+            <article key={i} className="border border-line/60 rounded-lg p-6 bg-surface/40 flex flex-col">
+              <h3 className="font-display font-bold text-ink text-lg leading-snug">{r.name}</h3>
+              <ul className="mt-4 space-y-3 flex-grow">
+                {r.carriers.map((c, ci) => (
+                  <li key={ci} className="text-sm">
+                    <div className="font-display font-bold text-ink/95 text-sm">{c.c}</div>
+                    <div className="mt-0.5 text-body/90 leading-relaxed">{c.note}</div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 pt-4 border-t border-line/40 font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">
+                Combined: {r.combined}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      {/* Samsung OEM detail (full-width below the three regional cards) */}
+      <div className="mt-10 border border-accent/40 rounded-lg p-6 md:p-7 bg-surface/40">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+          <Dot /> Samsung: the OEM layer
+        </div>
+        <p className="mt-4 text-body leading-relaxed">
+          The OEM partnership is structurally different from the carrier integrations and worth separating. Samsung licenses Smart Call pre-installed on Samsung devices globally, with the partnership extended through 2028. The distribution math is different: Smart Call runs on the device, not on the carrier network. That means Hiya's Protect surface reaches Samsung users in every market with Samsung distribution, including markets where Hiya has no direct carrier relationship. There's no SMS equivalent to this OEM layer; it's a structural advantage that doesn't appear in the SMS-deliverability analogy from §04. The renewal-through-2028 horizon also removes near-term contract risk from the device-side surface.
+        </p>
+      </div>
+
+      {/* Coverage math stat block */}
+      <div className="mt-12">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> Coverage math
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+          {NETWORK_COVERAGE_STATS.map((s, i) => (
+            <div key={i} className="border border-line/60 rounded-lg p-5 bg-surface/30">
+              <div className="font-mono text-xl md:text-2xl tabnum text-accent leading-none">{s.n}</div>
+              <div className="mt-3 text-sm text-body/95 leading-snug">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* What this moat is / isn't */}
+      <div className="mt-14 grid md:grid-cols-2 gap-6">
+        <div className="border border-line/60 rounded-lg p-6 bg-surface/30">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+            <Dot /> What this moat is
+          </div>
+          <ol className="mt-5 space-y-3.5 text-body/95 text-sm leading-relaxed">
+            {NETWORK_MOAT_IS.map((b, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="font-mono text-accent tabnum text-[11px] mt-1 shrink-0">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="border border-line/60 rounded-lg p-6 bg-surface/30">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+            <Dot tone="warn" /> What this moat isn't
+          </div>
+          <ol className="mt-5 space-y-3.5 text-body/95 text-sm leading-relaxed">
+            {NETWORK_MOAT_ISNT.map((b, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="font-mono text-warn tabnum text-[11px] mt-1 shrink-0">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {/* Synthesis */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent mb-4 flex items-center gap-2">
+          <Dot /> Synthesis
+        </div>
+        <p className="text-body leading-relaxed">
+          The Hiya Network is what the four hypotheses in §02 all compound on. H1 (Caller Reputation activation) needs the network to make reputation credible. H2 (Voice AI Agents to GA) inherits the trust signal the network already provides. H3 (carrier pull-through) is literally the question of how the network's newly-lit markets convert into paid enterprise revenue. H4 (AI Voice Detection) sits on top of the same trust posture. From outside, the network is the most legible thing about Hiya's strategic position. From inside this role's seat, it's the asset the activation motion has to monetize without depleting.
+        </p>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 06 — The Field (competitive landscape)
+  // Three sub-groups + Truecaller callout + synthesis
+  // ============================================================
+  const FIELD_GROUPS = [
+    {
+      code: 'A',
+      title: 'Branded calling and Rich Call Data',
+      rows: [
+        {
+          name: 'TransUnion',
+          product: 'Branded Call Display',
+          distribution: '~850 carrier relationships; enterprise-direct sales',
+          pricing: 'Custom enterprise; volume-tied',
+          overlap: 'Direct overlap on Branded Call. TransUnion is the strongest standalone branded-calling competitor by carrier-relationship count.',
+        },
+        {
+          name: 'First Orion',
+          product: 'ENGAGE, INFORM',
+          distribution: 'Carrier-side integrations; financial services concentration',
+          pricing: 'Custom enterprise; STIR/SHAKEN-stack bundled',
+          overlap: 'Direct overlap on Branded Call. Weaker on reputation-as-product surface.',
+        },
+        {
+          name: 'Bandwidth',
+          product: 'Branded Calling',
+          distribution: 'Network-API-first; developer-distributed',
+          pricing: 'Usage-based; per-call',
+          overlap: 'Direct overlap on Branded Call mechanics. Different buyer (developer/IT vs. marketing/contact-center).',
+        },
+        {
+          name: 'Numeracle',
+          product: 'Verified Caller ID',
+          distribution: 'Direct enterprise sales',
+          pricing: 'Tiered subscription',
+          overlap: 'Direct overlap on identity-and-trust framing; smaller carrier footprint.',
+        },
+      ],
+      commentary: "This is the most direct competitive set. TransUnion's stated 850-carrier number is the right one to take seriously, but its commercial frame is different. TransUnion sells trust-and-identity as part of a broader credit/risk product line, not as a standalone activation surface. First Orion's strength is depth in financial services (banks, debt collectors). Bandwidth's frame is developer-facing infrastructure. Hiya's position is the integrated stack: carrier-distribution-plus-identity-plus-reputation, sold to a marketing/contact-center buyer. The differentiator isn't any one product; it's the combination plus the OEM surface that none of these vendors have.",
+    },
+    {
+      code: 'B',
+      title: 'Reputation management and number labeling',
+      rows: [
+        {
+          name: 'Bandwidth',
+          product: 'Number Reputation Management',
+          distribution: 'Direct enterprise; bundled with Branded Calling',
+          pricing: 'Usage-based',
+          overlap: 'Direct overlap on Caller Reputation.',
+        },
+        {
+          name: 'Numeracle',
+          product: 'Entity Identity / Reputation',
+          distribution: 'Direct enterprise',
+          pricing: 'Subscription',
+          overlap: 'Direct overlap.',
+        },
+        {
+          name: 'First Orion',
+          product: null,
+          distribution: 'Carrier-side analytics',
+          pricing: 'Bundled with branded-calling stack',
+          overlap: 'Adjacent overlap; less standalone.',
+        },
+        {
+          name: 'In-house carrier analytics',
+          product: null,
+          distribution: 'T-Mobile, Verizon, AT&T internal carrier ops',
+          pricing: 'Not externally priced',
+          overlap: 'Substitutional risk: carriers could decide to expose reputation insights directly.',
+        },
+      ],
+      commentary: "Two of the four entries are the same vendors as Group A, sold to the same buyer through a different lens. The interesting entry is the fourth: in-house carrier analytics. If carriers decide to expose reputation data directly to enterprises (the way some have started to with their own developer portals), the standalone reputation-management category compresses fast. Hiya's defense against this is the same defense as against TransUnion: the integrated stack and the OEM distribution that carriers don't replicate.",
+    },
+    {
+      code: 'C',
+      title: 'Voice AI Agents',
+      rows: [
+        {
+          name: 'ElevenLabs',
+          product: null,
+          distribution: 'Developer-first; broad API surface',
+          pricing: 'Per-character, per-conversation',
+          overlap: 'Adjacent. Strong voice model; no identity or carrier layer.',
+        },
+        {
+          name: 'Bland.ai',
+          product: null,
+          distribution: 'Programmable voice agents, direct + developer',
+          pricing: 'Per-minute',
+          overlap: 'Adjacent. Strong agent orchestration; no trust layer.',
+        },
+        {
+          name: 'Vapi',
+          product: null,
+          distribution: 'Voice-agent infrastructure',
+          pricing: 'Per-minute usage',
+          overlap: 'Adjacent infrastructure play; no carrier integration.',
+        },
+        {
+          name: 'Retell',
+          product: null,
+          distribution: 'Voice-agent platform, direct enterprise',
+          pricing: 'Per-minute + per-seat',
+          overlap: 'Adjacent. Stronger enterprise GTM motion than ElevenLabs or Bland.',
+        },
+        {
+          name: 'Contact-center incumbents',
+          product: 'Genesys, NICE, Five9',
+          distribution: 'Enterprise contact-center, bundled',
+          pricing: 'Per-seat',
+          overlap: 'Adjacent. Have the buyer; building or partnering for agent capabilities.',
+        },
+      ],
+      commentary: "This group is the newest and the most fluid. The four pure-play voice-agent vendors compete on model quality, agent orchestration, and developer ergonomics. None of them sit on top of an identity-and-reputation layer; agents call out from generic numbers with no trust signal beyond what the receiving carrier infers. Hiya's defensible position in this group is not agent quality (the pure-plays will win on that); it's that an agent calling on a verified, reputation-managed number with a branded display lands differently than an agent calling from an unverified number. The contact-center incumbents are the slower but bigger threat. They have the buyer and the procurement relationship, and they will either build voice-agent capabilities in-house or partner with the pure-plays. Hiya's strategic question (§02 H2): is the wedge to be the trust layer agents sit on top of, or to be one of the agent vendors themselves?",
+    },
+  ];
+
+  const Field = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        The competitive set splits into three groups that don't overlap cleanly.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        Hiya's competitive frame is partial overlap, not zero-sum. Three distinct vendor categories sit adjacent to the products in §05: branded-calling and rich-call-data vendors, reputation-management vendors, and the new Voice AI Agent category. The interesting observation is that no single competitor occupies all three positions, and Hiya is one of the few vendors with a credible position in all three plus the carrier-distribution layer underneath them. Truecaller is named separately at the end because it competes on a different axis (consumer-first identification) than the enterprise frame.
+      </p>
+
+      {FIELD_GROUPS.map((g, gi) => (
+        <div key={gi} className="mt-14">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> Group {g.code} · {g.title}
+          </div>
+
+          {/* Desktop header row */}
+          <div className="hidden md:grid md:grid-cols-[1.2fr_1fr_1fr_2fr] gap-5 px-5 py-3 border border-line/60 rounded-t-lg bg-surface/60 border-b-line/40">
+            <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Vendor</div>
+            <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Distribution</div>
+            <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Pricing</div>
+            <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Overlap with Hiya</div>
+          </div>
+
+          {/* Table body */}
+          <div className="border border-line/60 rounded-lg md:rounded-t-none md:border-t-0 bg-surface/40 divide-y divide-line/40">
+            {g.rows.map((r, ri) => (
+              <div key={ri} className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_2fr] gap-4 md:gap-5 p-4 md:p-5">
+                <div>
+                  <div className="md:hidden font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-1">Vendor</div>
+                  <div className="font-display font-bold text-ink text-sm leading-snug">{r.name}</div>
+                  {r.product && (
+                    <div className="text-muted text-xs mt-0.5">{r.product}</div>
+                  )}
+                </div>
+                <div>
+                  <div className="md:hidden font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-1">Distribution</div>
+                  <div className="text-body/95 text-sm leading-relaxed">{r.distribution}</div>
+                </div>
+                <div>
+                  <div className="md:hidden font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-1">Pricing</div>
+                  <div className="text-body/95 text-sm leading-relaxed">{r.pricing}</div>
+                </div>
+                <div>
+                  <div className="md:hidden font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-1">Overlap with Hiya</div>
+                  <div className="text-body/95 text-sm leading-relaxed">{r.overlap}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-5 text-body max-w-3xl leading-relaxed">
+            {g.commentary}
+          </p>
+        </div>
+      ))}
+
+      {/* Truecaller callout */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> Truecaller · Adjacent, different axis
+        </div>
+        <p className="text-body leading-relaxed">
+          Truecaller competes on consumer-side caller identification at global scale (~400M MAU, India-heavy). It has a smaller enterprise (Truecaller for Business) product that overlaps with Hiya Connect on branded-display surfaces, but the company's center of gravity is consumer-first and its monetization model is freemium-plus-ads-plus-premium, which is structurally different from Hiya's carrier-distributed enterprise SaaS. In North America and Europe, Truecaller is a less direct competitor than the four vendors in Group A. Worth naming because the JD asks for awareness of the broader category, but holding it outside the enterprise competitive frame.
+        </p>
+      </div>
+
+      {/* Synthesis */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent mb-4 flex items-center gap-2">
+          <Dot /> Synthesis
+        </div>
+        <p className="text-body leading-relaxed">
+          No single competitor sits in all three groups plus on the carrier-and-OEM distribution layer. TransUnion, First Orion, Bandwidth, and Numeracle each occupy one or two of the first two groups but lack the OEM surface that Samsung-through-2028 gives Hiya. The Voice AI Agent vendors are strong on agents and weak on trust. The contact-center incumbents have the buyer but are not native to identity-and-reputation. Hiya's defensible position is the integrated trust stack across all three layers, with the carrier-and-OEM distribution as the moat underneath. The competitive risk worth naming is not displacement; it's commoditization of any one layer (in-house carrier analytics for reputation, agent commoditization for Voice AI) that compresses the margin on that layer faster than the activation motion can compound.
+        </p>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 07 — The Buyer Shift
+  // ============================================================
+  const BUYER_THEN_NOW = {
+    then: {
+      label: 'Then',
+      qualifier: 'circa 2020',
+      items: [
+        'One buyer: contact center operations director or telecom-side ops lead.',
+        'One success metric: outbound answer rate, or per-call cost.',
+        'One budget: contact-center P&L.',
+        'One decision rhythm: annual renewal, RFP-driven, slow.',
+      ],
+    },
+    now: {
+      label: 'Now',
+      qualifier: '2026',
+      items: [
+        'Five buyers, named below.',
+        'Five different success metrics.',
+        'Three to four distinct budgets.',
+        'Decision rhythms that range from procurement-led (security, compliance) to product-led (sales ops, marketing).',
+      ],
+    },
+  };
+
+  const BUYER_PERSONAS = [
+    {
+      name: 'Contact center operations',
+      qualifier: 'still the gravitational center',
+      owns: 'Outbound contact rate, agent productivity, per-call cost.',
+      measures: 'Answer rate, completed contacts per hour, cost per successful contact.',
+      budget: 'Contact-center P&L (largest, slowest-moving).',
+      rhythm: 'Annual procurement cycle, RFP, multi-vendor.',
+      hiyaTouch: 'Hiya Connect Branded Call, Number Registration.',
+    },
+    {
+      name: 'Marketing and brand',
+      qualifier: null,
+      owns: 'How the brand appears at every customer touchpoint, including the outbound call.',
+      measures: 'Branded recall, share of trusted impressions, NPS lift attributed to identified calls.',
+      budget: 'Brand or demand-gen, separate from contact-center P&L.',
+      rhythm: 'Faster, product-led, often through pilot-and-expand rather than RFP.',
+      hiyaTouch: 'Branded Call as a brand surface, not just an answer-rate tool.',
+    },
+    {
+      name: 'Sales operations',
+      qualifier: null,
+      owns: 'Outbound sales motion productivity, including AI-assisted and AI-led outreach.',
+      measures: 'Contacts per rep per day, connect rate, meetings booked.',
+      budget: 'Revenue operations or sales enablement, separate from contact-center.',
+      rhythm: 'Fast, tool-driven, often layered on existing CRM and dialer stacks.',
+      hiyaTouch: 'Voice AI Agents primarily; Branded Call as a secondary lift.',
+    },
+    {
+      name: 'Security and risk',
+      qualifier: 'CISO and fraud teams',
+      owns: 'Incoming threat exposure including voice phishing, deepfake fraud, IVR bypass.',
+      measures: 'Incidents detected, fraud loss prevented, time-to-detection.',
+      budget: 'Information security or fraud-prevention P&L, walled off from contact-center spend.',
+      rhythm: 'Procurement-led, evaluation-heavy, security-review-gated.',
+      hiyaTouch: 'AI Voice Detection (acquired from Loccus AI in 2024); inbound protection rather than outbound branding.',
+    },
+    {
+      name: 'Compliance and regulatory',
+      qualifier: null,
+      owns: 'STIR/SHAKEN attestation level, A2P registration accuracy, telecom regulatory posture.',
+      measures: 'Pass rate at attestation review, time to remediate mislabels, regulatory audit cleanliness.',
+      budget: 'Compliance or legal; small but non-discretionary.',
+      rhythm: 'Slow, deadline-driven by regulatory milestones (CTIA BCID rollout, FCC actions).',
+      hiyaTouch: 'Number Registration, attestation services, reputation reporting as audit artifact.',
+    },
+  ];
+
+  const BuyerShift = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        The buying committee fragmented along with the product line.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        Five years ago, "who buys voice trust services" had one answer: the contact center operations director. The four hypotheses in §02 each pull in a different buyer: marketing for branded ID, sales ops for AI agents, security and risk for deepfake detection, and compliance for STIR/SHAKEN attestation. Contact center is still the gravitational center, but the activation funnel can no longer assume a single buyer with a single budget and a single success metric. Packaging absorbs this fragmentation, or sales cycles balloon.
+      </p>
+
+      {/* Then / Now */}
+      <div className="mt-12">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> Then and now
+        </div>
+        <div className="grid md:grid-cols-2 gap-5">
+          {['then', 'now'].map((k) => {
+            const card = BUYER_THEN_NOW[k];
+            return (
+              <article key={k} className="border border-line/60 rounded-lg p-6 bg-surface/40">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-display font-bold text-ink text-lg">{card.label}</span>
+                  <span className="font-mono text-[11px] tabnum text-muted">· {card.qualifier}</span>
+                </div>
+                <ul className="mt-4 space-y-2.5">
+                  {card.items.map((item, i) => (
+                    <li key={i} className="flex gap-3 text-body/95 text-sm leading-relaxed">
+                      <span className="font-mono text-accent tabnum text-[10px] mt-1.5 shrink-0">·</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Five personas */}
+      <div className="mt-14">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> The five personas
+        </div>
+        <div className="space-y-5">
+          {BUYER_PERSONAS.map((p, i) => (
+            <article key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+              <div className="flex flex-wrap items-baseline gap-3">
+                <h3 className="font-display font-bold text-ink text-lg md:text-xl leading-snug">{p.name}</h3>
+                {p.qualifier && (
+                  <span className="text-muted text-sm italic">· {p.qualifier}</span>
+                )}
+              </div>
+              <div className="mt-5 grid md:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Owns</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.owns}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Measures</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.measures}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Budget</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.budget}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Decision rhythm</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.rhythm}</p>
+                </div>
+              </div>
+              <div className="mt-5 pt-4 border-t border-line/40">
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-accent">Hiya touchpoint</div>
+                <p className="mt-1 text-body/95 text-sm leading-relaxed">{p.hiyaTouch}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      {/* What this means for the role */}
+      <div className="mt-14 max-w-3xl border border-accent/40 rounded-lg p-6 md:p-7 bg-surface/40">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+          <Dot /> What this means for the role
+        </div>
+        <p className="mt-4 text-body leading-relaxed">
+          The role inherits five buyers, four hypotheses, and one set of products. The activation motion can't address all five buyers with one funnel; that's the central packaging problem. Two approaches that would not work: (a) one giant universal sign-up flow that tries to be everything to everyone, which loses to specialized vendors at every persona; (b) five completely separate go-to-market motions, which fragments engineering capacity and dilutes the integrated-stack advantage from §07. The viable approach is buyer-specific activation paths on top of a shared product surface: Caller Reputation as the free entry point that lands the same way for every buyer, then specialized activation flows that fork by buyer-type into the right paid product. That's H1 with the buyer-fragmentation lens added. It's also the architectural choice that determines whether H2 (Voice AI Agents) and H4 (AI Voice Detection) become separate sales motions or stay inside the Connect funnel.
+        </p>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 09 — Segments
+  // ============================================================
+  const SEGMENT_MATRIX = {
+    cols: ['Outbound sales', 'Customer service', 'Verification & 2FA', 'Appointment reminders', 'Fraud-defensive inbound'],
+    rows: [
+      { label: 'Enterprise',  qualifier: '1000+',     cells: [3, 3, 2, 2, 2] },
+      { label: 'Mid-market',  qualifier: '200-1000',  cells: [2, 2, 1, 2, 1] },
+      { label: 'SMB',         qualifier: '<200',      cells: [1, 1, 1, 1, 0] },
+    ],
+  };
+
+  const SEGMENT_CARDS = [
+    {
+      num: '1',
+      name: 'Enterprise financial services',
+      volume: '25,000 to 250,000+ branded calls per month per institution.',
+      useCases: 'Claims outbound, payment outreach, fraud-defensive inbound, identity verification.',
+      roi: 'Contact-rate lift on claims and payment outbound; fraud loss prevention on inbound.',
+      planFit: 'Connect Volume or Custom contract; Number Registration; Caller Reputation.',
+      buyer: 'Contact-center ops, plus compliance, plus fraud teams. Multi-stakeholder.',
+      disclosed: 'Geico, FICO, BCBS, State Farm.',
+      objection: 'Integration complexity with existing telephony stacks (Genesys, NICE, Five9); regulatory review timelines for financial services data handling.',
+    },
+    {
+      num: '2',
+      name: 'Enterprise e-commerce and logistics',
+      volume: '50,000 to 500,000+ calls per month.',
+      useCases: 'Delivery notifications, customer service inbound, appointment scheduling for high-touch deliveries.',
+      roi: 'Completion rate on outbound notifications (reduces failed-delivery cost); CSAT lift on service inbound.',
+      planFit: 'Connect Volume or Custom; pilot opportunity for Voice AI Agents on routine service flows.',
+      buyer: 'Contact-center ops plus marketing (brand surface).',
+      disclosed: 'DoorDash, DHL.',
+      objection: 'Branded calling ROI compared to SMS notifications (cheaper channel, but lower attention).',
+    },
+    {
+      num: '3',
+      name: 'Enterprise healthcare',
+      volume: '25,000 to 150,000 calls per month per organization.',
+      useCases: 'Appointment reminders, prescription notifications, service inbound, post-discharge follow-up.',
+      roi: 'No-show rate reduction (industry baseline is 15% to 30% in many specialties); medication adherence; HEDIS quality measures.',
+      planFit: 'Connect Standard to Volume.',
+      buyer: 'Contact-center ops plus compliance (HIPAA gating).',
+      disclosed: 'BCBS (likely overlaps the financial services segment for some Blues plans).',
+      objection: 'HIPAA compliance review for any voice data handling; legacy IT environments that slow integration.',
+    },
+    {
+      num: '4',
+      name: 'Mid-market healthcare and services',
+      volume: '1,000 to 10,000 calls per month.',
+      useCases: 'Appointment reminders, service inbound, simple outbound notifications.',
+      roi: 'Same no-show reduction logic at smaller scale; self-service onboarding makes lift-versus-cost easy to model for the buyer.',
+      planFit: 'Connect Small or Standard, in the self-service tiers across US, UK, Canada, Australia.',
+      buyer: 'Practice administrator or marketing director (often the same person at this size).',
+      disclosed: 'Not individually named in public material; aggregate self-service tier volume.',
+      objection: 'Time-to-value compared to simpler tools (calendar-integrated SMS reminders, basic IVR).',
+    },
+    {
+      num: '5',
+      name: 'SMB outbound (self-service)',
+      volume: '250 to 2,500 calls per month.',
+      useCases: 'Sales prospecting, appointment confirmations, service callbacks for service businesses.',
+      roi: 'Connect-rate lift on lower-volume, higher-margin outreach.',
+      planFit: 'Connect Starter (the entry tier: $25 setup plus 250 calls per month).',
+      buyer: 'Business owner or single ops person.',
+      disclosed: 'Not named individually; aggregate self-service tier.',
+      objection: '$25 setup plus monthly commitment can feel disproportionate when value isn\'t yet proven at this scale.',
+    },
+  ];
+
+  // Density dot renderer: 3 = heavy, 2 = medium, 1 = light, 0 = sparse
+  const DensityCell = ({ d }) => {
+    if (d === 0) return <span className="text-muted/70">·</span>;
+    const dots = '\u25CF'.repeat(d);
+    return (
+      <span className="font-mono text-accent tabnum tracking-tight" aria-label={`density ${d}`}>
+        {dots}
+      </span>
+    );
+  };
+
+  const Segments = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        The customer landscape doesn't fill the matrix evenly.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        Hiya's enterprise SaaS revenue concentrates in a handful of segment intersections, not across the full landscape. This section maps the 3-by-5 customer matrix (company size by primary use case), names where Hiya's disclosed customers cluster, and details the five segments where the activation and packaging work this role inherits has the most leverage. The matrix is read from public material; the segment depth is calibrated reasoning, not verified pipeline data.
+      </p>
+
+      {/* Density matrix */}
+      <div className="mt-12">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> The density matrix · 3 sizes x 5 use cases
+        </div>
+        <div className="border border-line/60 rounded-lg bg-surface/40 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-line/40">
+                <th className="text-left p-3 md:p-4 font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">
+                  Size · use case
+                </th>
+                {SEGMENT_MATRIX.cols.map((c, i) => (
+                  <th
+                    key={i}
+                    className="text-center p-3 md:p-4 font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted whitespace-nowrap"
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {SEGMENT_MATRIX.rows.map((r, ri) => (
+                <tr key={ri} className={ri < SEGMENT_MATRIX.rows.length - 1 ? 'border-b border-line/40' : ''}>
+                  <td className="p-3 md:p-4">
+                    <div className="font-display font-bold text-ink text-sm">{r.label}</div>
+                    <div className="font-mono text-[10px] tabnum text-muted">{r.qualifier}</div>
+                  </td>
+                  {r.cells.map((d, di) => (
+                    <td key={di} className="text-center p-3 md:p-4">
+                      <DensityCell d={d} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 font-mono text-[10px] tabnum text-muted leading-relaxed">
+          <span className="text-accent">●●●</span> heavy (named customers, likely revenue concentration) ·{' '}
+          <span className="text-accent">●●</span> medium ·{' '}
+          <span className="text-accent">●</span> light ·{' '}
+          <span className="text-muted/70">·</span> sparse
+        </div>
+        <p className="mt-5 text-body max-w-3xl leading-relaxed">
+          The Enterprise row carries most of the disclosed-customer logos. SMB is the self-service-tier target where unit economics work but logo visibility is low. The matrix doesn't include the carrier-distributed segment, which sits at a different commercial layer (see callout below).
+        </p>
+      </div>
+
+      {/* Five segment cards */}
+      <div className="mt-14">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+          <Dot /> Five named segments
+        </div>
+        <div className="space-y-5">
+          {SEGMENT_CARDS.map((s, i) => (
+            <article key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+              <div className="flex items-baseline gap-4">
+                <span className="font-mono text-accent tabnum text-sm shrink-0">S{s.num}</span>
+                <h3 className="font-display font-bold text-ink text-lg md:text-xl leading-snug">{s.name}</h3>
+              </div>
+              <div className="mt-5 grid md:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Volume</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.volume}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Use cases</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.useCases}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">ROI driver</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.roi}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Plan-tier fit</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.planFit}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">Buyer (from §08)</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.buyer}</p>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-accent">Disclosed customers</div>
+                  <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.disclosed}</p>
+                </div>
+              </div>
+              <div className="mt-5 pt-4 border-t border-line/40">
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-warn">Typical objection</div>
+                <p className="mt-1 text-body/95 text-sm leading-relaxed">{s.objection}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      {/* Carrier-distributed callout */}
+      <div className="mt-14 max-w-3xl border border-line/60 rounded-lg p-6 bg-surface/30">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+          <Dot /> Carrier-distributed · outside the matrix
+        </div>
+        <p className="mt-4 text-body leading-relaxed">
+          The carrier-distributed segment is structurally different from the matrix above. Carriers (AT&T, T-Mobile, Vodafone UK, Deutsche Telekom, O2 Telefónica, MasOrange, Telenor, BT/EE, Virgin Media O2, Bell, Rogers) and OEMs (Samsung through 2028) license Hiya Protect to deliver call labeling and spam protection to their consumer subscribers. The business-side benefit (a more reliable trust signal layer for branded calling) compounds into the enterprise segments above, but the direct commercial relationship is carrier-to-Hiya, not business-to-Hiya. This is the moat described in §05 and §06. From this role's seat, the relevant question isn't whether to expand carrier-distributed (that motion is likely owned by BD or partnerships) but how to pull enterprise activation through each newly-lit market, which is H3.
+        </p>
+      </div>
+
+      {/* Synthesis */}
+      <div className="mt-14 max-w-3xl">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent mb-4 flex items-center gap-2">
+          <Dot /> Synthesis
+        </div>
+        <p className="text-body leading-relaxed">
+          Enterprise financial services and enterprise e-commerce concentrate the disclosed-customer logos and the volume. Healthcare carries the cleanest ROI story but the longest compliance cycle. Mid-market and SMB are where the self-service tier structure earns its keep: not big logos, but unit economics that work at scale once activation is instrumented. The matrix is asymmetric on purpose: the activation funnel from §02 H1 needs to absorb that asymmetry rather than fight it, which means tier-specific defaults, segment-specific buyer journeys, and pricing that fits each cell's volume profile rather than forcing a uniform shape across the landscape.
+        </p>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 02 — Hypotheses (renders at all tiers; depth scales)
+  // Lands before context sections, so each H must be self-standing.
+  // ============================================================
+  const Hypotheses = ({ sec, tier }) => {
+    const lvl = TIER[tier];
+
+    const items = [
+      {
+        title: 'Caller Reputation is the activation engine for Hiya Connect, and the engine is underclocked.',
+        line:  'The free "credit score for business calls" with AT&T launched Sep 30, 2025. Outside-in signal suggests it functions as a reporting surface today; the wedge is turning it into an instrumented activation funnel into paid Number Registration and Branded Call.',
+        mechanism: 'Today a business arrives at Caller Reputation, sees its score, and learns whether its numbers are mislabeled. Hiya\'s own data names the demand: 53% of enterprise leaders report mislabels have lowered contact rates; 17% don\'t know if they\'ve been mislabeled. The mechanism is to take that diagnosis moment and turn it into a paid path: Number Registration to resolve mislabels, then Branded Call to defend the gains. That requires reputation-event triggers wired to plan-tier upgrades, a remediation queue with measurable resolution time, and ROI attribution that the buyer can read in the same vocabulary as the score itself.',
+        whyTrue:    "Algard publicly framed Caller Reputation as a credit score for businesses, which is an activation-funnel framing in disguise. Hiya's own pricing already charges per delivered branded call rather than per attempt, so the instrumentation for usage-based monetization is already built. The customer pain (mislabel, lost contact rate) is acute and measurable, which is the precondition for an activation moment to convert.",
+        whyWrong:   'Caller Reputation may be intentionally positioned as a moat rather than a funnel: free forever, no upsell, to make Hiya the trust intermediary across the industry. In that frame, instrumenting it as a paid-conversion engine could degrade the trust position that gives it standing in the first place. Activation-to-paid may also already be working internally, with the funnel bottleneck somewhere else (sales cycle length, integration complexity, finance approval).',
+        resolves:   'Three signals. Internal: what is the current Caller-Reputation-to-paid-Connect conversion rate, and what shape does the funnel have today? External: do AT&T and the recent State of the Call respondents convert at materially different rates than direct sign-ups? Operational: is there an existing remediation workflow, and what is its median resolution time?',
+        confidence: "High confidence as a customer-psychology framing (the credit-score analogy is Algard's, not mine). Medium as the specific bet. Resolution depends on whether activation-to-paid is the current funnel bottleneck and on whether Hiya's strategic posture treats Caller Reputation as funnel or as moat.",
+      },
+      {
+        title: 'Voice AI Agents from beta to GA is a packaging problem, not a model problem.',
+        line:  'Hiya launched Voice AI Agents in beta in August 2025. The competitive set on agent quality is crowded (ElevenLabs, Bland.ai, Vapi, Retell). Hiya\'s defensible position is the identity, reputation, and delivery layer the agents sit on top of.',
+        mechanism: "The packaging question has three parts. First, is Voice AI Agents a standalone product (separate buyer, separate procurement) or a stacked bundle on top of Branded Call (same buyer, expansion motion)? Second, how does pricing reflect the actual economics: per-minute, per-conversation, per-outcome, or per-seat? Third, what is the integration surface the buyer expects (CRM, calendar, ticketing) and what does Hiya build versus partner for? The role's 90-to-180 day work is to answer those three questions with packaging and positioning that the sales team can actually run.",
+        whyTrue:    'The JD\'s language ("branded calling experiences, trusted business calls, AI tools, builder mindset") maps more cleanly to Voice AI Agents than to any other product surface. Hiya\'s MWC 2026 framing ("1 in 4 calls now contain AI-generated audio") is positioning the company as the trust-and-identity layer for an agent-saturated voice channel, not as another agent vendor. That distinction needs a packaging decision to be commercially legible.',
+        whyWrong:   'The role may not own Voice AI Agents at all; it could sit in a separate product line under different ownership. If GA is imminent, the packaging may already be decided internally and the role inherits execution rather than design. Alternatively, the strategic answer may be to keep Voice AI Agents as an OEM/carrier-distributed surface (matching the Protect model) rather than direct enterprise SaaS, which changes the role fundamentally.',
+        resolves:   'Org chart: who currently owns Voice AI Agents internally, and how is decision-rights split between Connect, Protect, and the AI Agents line? Pricing: what beta pricing exists today, and what is the GA timeline? Customer signal: are beta customers expanding from Branded Call into Agents, or are they net-new logos?',
+        confidence: 'High confidence that this is a strategic priority for Hiya. Medium-high that the role touches it. Low on the specific packaging move, because the internal signal is not in public material.',
+      },
+      {
+        title: 'The activation gap for newly-lit carrier markets is real revenue waiting on a localized motion.',
+        line:  'Vodafone UK in March 2026 lit ~100% of UK mobile. Deutsche Telekom and O2 Telefónica covered 90%+ of Germany in early 2026. MasOrange brought Spain. Carrier launches create the surface; enterprise adoption is downstream and slower.',
+        mechanism: 'When a carrier deploys Hiya Protect, every business calling into that carrier\'s subscribers gets the option to brand its outbound calls. Most businesses don\'t know that, can\'t self-serve into it (Hiya\'s self-service Connect tiers cover US/UK/CA/AU; everywhere else starts around $550/mo on custom contracts), and have no localized pricing or partner motion to walk them in. The work is to design a localized enterprise activation flow per carrier launch: market-specific pricing thresholds, partner motion with the carrier\'s own enterprise sales teams, packaging that reflects regional contact-rate baselines, and an attribution model that proves answer-rate lift in the local market.',
+        whyTrue:    'The cited 50% answer-rate lift hook is concrete and recent (O2 Telefónica, Feb 2026). The enterprise pull-through is the most direct conversion of the new carrier reach into revenue. Hiya\'s outside-the-self-service-four pricing floor (~$550/mo) suggests the localized motion is currently manual, which is exactly where productizing pays off.',
+        whyWrong:   'Enterprise activation across markets could be sales-led or BD-led rather than PM-led; the role may not own this motion. The carrier-side ROI hook (50% lift) may not survive enterprise procurement cycles, especially in markets with longer sales cycles like Germany. And localized enterprise SaaS is genuinely hard: regulatory, pricing, and partner-economics work that may compete for engineering capacity with H1 and H2.',
+        resolves:   'Sales pipeline: what is the current ratio of enterprise revenue to carrier-distributed reach, by market? Org: is enterprise activation owned by PM, sales, or BD today, and where do the decision rights sit? Customer signal: are enterprise customers entering through the carrier touchpoint or through direct outreach?',
+        confidence: 'High confidence that the activation gap exists as a revenue catalyst. Medium that the role owns it as a PM motion rather than supporting a sales-led one. Low on which of UK, Germany, or Spain to prioritize, because the resolution depends on internal pipeline data.',
+      },
+      {
+        title: 'AI Voice Detection is a separate buyer and a separate product. Don\'t treat it as a feature.',
+        line:  'Hiya acquired Loccus AI in July 2024 for audio intelligence and deepfake detection. The 1-in-4-calls AI-audio data point names a buyer with a different success metric than the Branded Call buyer.',
+        mechanism: "The Branded Call buyer optimizes for outbound contact rate. The AI Voice Detection buyer (security, risk, fraud) optimizes for incoming deepfake exposure and IVR-bypass attempts. The buyers have different budgets, different procurement paths (security/IT vs. sales/contact-center), and different evaluation criteria. Productizing AI Voice Detection as a standalone offer (separate API, separate pricing, separate sales motion) addresses a buyer the Branded Call sales motion doesn't reach. The packaging question mirrors H2: per-event, per-seat, or per-API-call? The buyer is fundamentally different.",
+        whyTrue:    'The buyer fragmentation is real. CISO and fraud-team budgets sit outside the contact-center P&L and don\'t share decision rights with the marketing buyer who buys Branded Call. The acquired technology (Loccus AI) is purpose-built for this category. The threat surface (deepfake voice fraud) is acute enough to drive evaluation cycles rather than waiting for product-roadmap pull.',
+        whyWrong:   "The right wedge from this PM role's seat may not be productizing AI Voice Detection; it may belong to a different team or to a partner motion (security ISVs, fraud platforms). The product surface is still maturing; the false-positive and false-negative economics may not yet support a paid standalone offer. Treating it as a separate product also fragments the sales motion at a time when Hiya needs to be consolidating the trust-layer narrative.",
+        resolves:   'Internal: which team owns AI Voice Detection commercialization today, and what is its current revenue contribution? Customer: are security buyers approaching Hiya, or is the demand still latent? Competitive: how do Pindrop, Reality Defender, and contact-center-incumbent detection offers compare on detection accuracy and pricing?',
+        confidence: "Medium that this is the right wedge from this role's seat. It might belong to a different team. High that the product surface exists and the buyer is real. Low on commercial readiness, because beta and GA timing for AI Voice Detection are not public.",
+      },
+    ];
+
+    return (
+      <SectionShell sec={sec}>
+        <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+          Four hypotheses, held in parallel until the first 30 days resolve them.
+        </h2>
+        <p className="mt-5 text-body max-w-3xl leading-relaxed">
+          These are bets a Principal PM could plausibly own in the next 90 to 180 days. Each is one motion, not a roadmap. The honest move from outside the company is to name plausible bets and the signals that would resolve them, rather than commit to one without internal data. Context for the bets (the forces, the architecture, the network) follows in §03 through §06. The plan that chooses among them sits in §12.
+        </p>
+
+        <ol className="mt-10 space-y-6">
+          {items.map((h, i) => (
+            <li key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+              <div className="flex items-baseline gap-4">
+                <span className="font-mono text-accent tabnum text-sm shrink-0">H{i + 1}</span>
+                <h3 className="font-display font-bold text-ink text-xl md:text-2xl leading-snug">{h.title}</h3>
+              </div>
+              <p className="mt-4 text-body leading-relaxed">{h.line}</p>
+
+              {lvl >= 1 && (
+                <div className="mt-5 pt-5 border-t border-line/40">
+                  <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">Mechanism</div>
+                  <p className="mt-2 text-body/95 leading-relaxed">{h.mechanism}</p>
+                </div>
+              )}
+
+              {lvl >= 2 && (
+                <div className="mt-5 pt-5 border-t border-line/40 grid md:grid-cols-2 gap-5">
+                  <div>
+                    <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">Why this might be true</div>
+                    <p className="mt-2 text-body/95 text-sm leading-relaxed">{h.whyTrue}</p>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">Why this might be wrong</div>
+                    <p className="mt-2 text-body/95 text-sm leading-relaxed">{h.whyWrong}</p>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">What would resolve it</div>
+                    <p className="mt-2 text-body/95 text-sm leading-relaxed">{h.resolves}</p>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">Confidence</div>
+                    <p className="mt-2 text-body/95 text-sm leading-relaxed">{h.confidence}</p>
+                  </div>
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+      </SectionShell>
+    );
+  };
+
+  // ============================================================
+  // SECTION 10 — Interactive: Trusted Call Calculator
+  // Real industry data + Hiya pricing structure + transparent math
+  // ============================================================
+  const CALC_PRESETS = [
+    {
+      id: 'finserv',
+      name: 'Financial services outbound',
+      description: 'Claims outbound, payment outreach, retention calls.',
+      baselineAnswerRate: 0.12,
+      avgValuePerSuccess: 75,
+      valueLabel: 'per successful contact (recovered call, retained policy moment, etc.)',
+      brandedLift: 0.60,
+      sourceNote: 'Baseline from TransUnion/Forrester Feb 2025 ("~90% of enterprise calls unanswered"). Lift in the middle of TNS 40 to 130% range.',
+    },
+    {
+      id: 'healthcare',
+      name: 'Healthcare appointment reminders',
+      description: 'Appointment confirmations, no-show prevention, post-discharge calls.',
+      baselineAnswerRate: 0.25,
+      avgValuePerSuccess: 200,
+      valueLabel: 'per appointment retained (national avg cost per missed visit)',
+      brandedLift: 0.40,
+      sourceNote: 'Baseline no-show 20 to 30% (J. Telemedicine and Telecare). Cost per missed visit ~$200 (mybcat 2026). Lift conservative because reminder calls already have higher baselines.',
+    },
+    {
+      id: 'ecommerce',
+      name: 'E-commerce delivery and notifications',
+      description: 'Delivery confirmations, address verification, customer service contact.',
+      baselineAnswerRate: 0.15,
+      avgValuePerSuccess: 17,
+      valueLabel: 'per failed-delivery avoided (US avg, Loqate/OneRail data)',
+      brandedLift: 0.50,
+      sourceNote: 'Failed delivery rate 5 to 10%, cost per failure ~$17.20 US (Loqate). Lift estimate mid-range given recipients often expecting delivery contact.',
+    },
+    {
+      id: 'sales',
+      name: 'B2B sales prospecting',
+      description: 'Cold outbound, lead qualification, meeting booking.',
+      baselineAnswerRate: 0.18,
+      avgValuePerSuccess: 50,
+      valueLabel: 'per meaningful connect (multi-touch sales journey, not booked meeting)',
+      brandedLift: 0.80,
+      sourceNote: 'Connect rate 15 to 25% baseline (Convoso Nov 2025; SalesHive Q1 2026). Lift higher because cold-call skepticism baseline is lower.',
+    },
+  ];
+
+  // Volume tier steps (discrete) — match Hiya's published self-service tier structure
+  const VOLUME_STEPS = [250, 1000, 5000, 10000, 25000, 50000, 100000];
+
+  // Pricing assumptions (clearly flagged as estimates where Hiya hasn't disclosed)
+  const HIYA_PRICING = {
+    brandedSetupFee: 25, // public: $25 one-time platform fee
+    brandedPerCall: 0.012, // estimate: industry mid-range for per-delivered-branded-call pricing
+    agentPerCall: 0.25, // estimate: ~$0.10/min × ~2.5min avg, comparable to Bland.ai, Vapi pricing
+    reputationLift: 0.08, // assumption: 8% relative lift from mislabel remediation alone
+    agentVolumeMultiplier: 1.5, // assumption: AI agents extend effective dial volume by ~50%
+  };
+
+  const fmtCurrency = (n) => {
+    if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'K';
+    if (n < 1 && n > 0) return '$' + n.toFixed(2);
+    return '$' + Math.round(n).toLocaleString();
+  };
+
+  const fmtPct = (n) => (n * 100).toFixed(1) + '%';
+  const fmtNum = (n) => Math.round(n).toLocaleString();
+
+  const Calculator = ({ sec }) => {
+    const [presetId, setPresetId] = useState('finserv');
+    const [volumeIdx, setVolumeIdx] = useState(2); // 5000
+    const [layers, setLayers] = useState({
+      registration: true,
+      reputation: false,
+      branded: false,
+      agent: false,
+    });
+
+    const preset = CALC_PRESETS.find((p) => p.id === presetId);
+    const volume = VOLUME_STEPS[volumeIdx];
+
+    // Toggle handler with prerequisite constraints
+    const toggle = (key) => {
+      setLayers((prev) => {
+        const next = { ...prev, [key]: !prev[key] };
+        // Registration is prerequisite for everything else
+        if (key === 'registration' && prev.registration) {
+          // Turning off registration also turns off downstream
+          next.reputation = false;
+          next.branded = false;
+          next.agent = false;
+        }
+        // Enabling reputation, branded, or agent auto-enables registration
+        if ((key === 'reputation' || key === 'branded' || key === 'agent') && next[key]) {
+          next.registration = true;
+        }
+        // Branded prereq for agent
+        if (key === 'branded' && prev.branded) {
+          next.agent = false;
+        }
+        if (key === 'agent' && next.agent) {
+          next.branded = true;
+          next.registration = true;
+        }
+        return next;
+      });
+    };
+
+    // ====== Math ======
+    const baseRate = preset.baselineAnswerRate;
+    const reputationLift = layers.reputation ? HIYA_PRICING.reputationLift : 0;
+    const brandedLift = layers.branded ? preset.brandedLift : 0;
+    // Lifts compound multiplicatively, capped at 95% (you can't exceed near-universal)
+    const effectiveRateRaw = baseRate * (1 + reputationLift) * (1 + brandedLift);
+    const effectiveRate = Math.min(effectiveRateRaw, 0.95);
+
+    // Effective volume — AI agent extends dial capacity
+    const effectiveVolume = layers.agent ? volume * HIYA_PRICING.agentVolumeMultiplier : volume;
+
+    // Contacts
+    const baselineContacts = volume * baseRate;
+    const effectiveContacts = effectiveVolume * effectiveRate;
+    const incrementalContacts = Math.max(0, effectiveContacts - baselineContacts);
+
+    // Revenue
+    const revenueLift = incrementalContacts * preset.avgValuePerSuccess;
+
+    // Hiya cost
+    let monthlyCost = 0;
+    let setupCost = 0;
+    if (layers.branded) {
+      setupCost = HIYA_PRICING.brandedSetupFee;
+      monthlyCost += effectiveContacts * HIYA_PRICING.brandedPerCall;
+    }
+    if (layers.agent) {
+      monthlyCost += effectiveVolume * HIYA_PRICING.agentPerCall;
+    }
+
+    const netROI = revenueLift - monthlyCost;
+    const paybackMonths = setupCost > 0 && netROI > 0 ? setupCost / netROI : 0;
+    const roiMultiple = monthlyCost > 0 ? revenueLift / monthlyCost : null;
+
+    return (
+      <SectionShell sec={sec}>
+        <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+          Trusted Call Calculator: layer the stack, watch the math.
+        </h2>
+        <p className="mt-5 text-body max-w-3xl leading-relaxed">
+          Pick an industry, set monthly outbound call volume, and toggle Hiya product layers to see how each one moves answer rate, revenue lift, and Hiya cost. All baseline rates are sourced from public 2025 and 2026 research; the methodology and assumptions are spelled out below the interactive. Hiya's actual per-tier pricing is not fully public, so per-call rates are estimated from industry-comparable benchmarks and flagged where used.
+        </p>
+
+        {/* Industry preset selector */}
+        <div className="mt-10">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> 1. Pick an industry
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {CALC_PRESETS.map((p) => {
+              const active = p.id === presetId;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPresetId(p.id)}
+                  className={
+                    'text-left p-4 rounded-lg border tier-btn ' +
+                    (active
+                      ? 'border-accent bg-accent/10 text-ink'
+                      : 'border-line/60 bg-surface/30 text-body hover:border-accent/60')
+                  }
+                  aria-pressed={active}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-display font-bold text-sm md:text-base">{p.name}</span>
+                    <span
+                      className={
+                        'font-mono text-[10px] tabnum uppercase tracking-wide100 shrink-0 ' +
+                        (active ? 'text-accent' : 'text-muted')
+                      }
+                    >
+                      {active ? 'active' : 'tap'}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-muted leading-relaxed">{p.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Volume slider */}
+        <div className="mt-10">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> 2. Set monthly call volume
+          </div>
+          <div className="border border-line/60 rounded-lg p-5 md:p-6 bg-surface/40">
+            <div className="flex items-baseline justify-between mb-4">
+              <span className="font-mono text-2xl md:text-3xl tabnum text-accent">{fmtNum(volume)}</span>
+              <span className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted">
+                branded calls / month
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={VOLUME_STEPS.length - 1}
+              step={1}
+              value={volumeIdx}
+              onChange={(e) => setVolumeIdx(parseInt(e.target.value, 10))}
+              className="w-full accent-accent"
+              aria-label="Monthly call volume"
+            />
+            <div className="mt-2 flex justify-between text-[10px] tabnum font-mono text-muted">
+              {VOLUME_STEPS.map((v, i) => (
+                <span key={i} className={i === volumeIdx ? 'text-accent' : ''}>
+                  {v >= 1000 ? v / 1000 + 'K' : v}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Stack layer toggles */}
+        <div className="mt-10">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> 3. Layer the stack
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <LayerToggle
+              active={layers.registration}
+              onToggle={() => toggle('registration')}
+              name="Number Registration"
+              priceLabel="Free"
+              effectLabel="Prerequisite: enables proper labeling and downstream layers."
+            />
+            <LayerToggle
+              active={layers.reputation}
+              onToggle={() => toggle('reputation')}
+              name="Caller Reputation"
+              priceLabel="Free"
+              effectLabel={'+' + (HIYA_PRICING.reputationLift * 100) + '% answer rate via mislabel remediation.'}
+            />
+            <LayerToggle
+              active={layers.branded}
+              onToggle={() => toggle('branded')}
+              name="Branded Call"
+              priceLabel="$25 setup + per-call usage"
+              effectLabel={'+' + (preset.brandedLift * 100) + '% relative lift for ' + preset.name.toLowerCase() + '.'}
+            />
+            <LayerToggle
+              active={layers.agent}
+              onToggle={() => toggle('agent')}
+              name="Voice AI Agent layer"
+              priceLabel="Beta · estimated pricing"
+              effectLabel={'+' + ((HIYA_PRICING.agentVolumeMultiplier - 1) * 100) + '% effective dial volume; 24/7 availability.'}
+            />
+          </div>
+        </div>
+
+        {/* Live output */}
+        <div className="mt-12 border border-accent/40 rounded-lg bg-surface/60">
+          <div className="px-5 md:px-7 py-4 border-b border-line/40 font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+            <Dot /> The math
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line/40">
+            <CalcStat
+              label="Effective answer rate"
+              value={fmtPct(effectiveRate)}
+              sub={'baseline ' + fmtPct(baseRate)}
+              tone="ink"
+            />
+            <CalcStat
+              label="Monthly successful contacts"
+              value={fmtNum(effectiveContacts)}
+              sub={'+' + fmtNum(incrementalContacts) + ' over baseline'}
+              tone="ink"
+            />
+            <CalcStat
+              label="Revenue lift / month"
+              value={fmtCurrency(revenueLift)}
+              sub={'@ ' + fmtCurrency(preset.avgValuePerSuccess) + ' / success'}
+              tone="accent"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line/40 border-t border-line/40">
+            <CalcStat
+              label="Hiya monthly cost"
+              value={fmtCurrency(monthlyCost)}
+              sub={setupCost > 0 ? '+ $' + setupCost + ' one-time setup' : 'no paid layers enabled'}
+              tone="ink"
+            />
+            <CalcStat
+              label="Net monthly ROI"
+              value={fmtCurrency(netROI)}
+              sub={roiMultiple !== null ? roiMultiple.toFixed(1) + 'x return on Hiya spend' : 'no paid spend'}
+              tone={netROI >= 0 ? 'accent' : 'warn'}
+            />
+            <CalcStat
+              label="Setup payback"
+              value={paybackMonths > 0 ? (paybackMonths < 0.1 ? '< 1 day' : paybackMonths.toFixed(1) + ' months') : '·'}
+              sub={setupCost > 0 ? 'against $' + setupCost + ' setup fee' : 'no setup fee active'}
+              tone="ink"
+            />
+          </div>
+        </div>
+
+        {/* Industry-specific source note */}
+        <div className="mt-5 text-sm text-muted max-w-3xl leading-relaxed">
+          <span className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">Source · {preset.name}:</span>{' '}
+          {preset.sourceNote}
+        </div>
+
+        {/* Methodology disclosure */}
+        <div className="mt-14 border border-line/60 rounded-lg p-6 md:p-7 bg-surface/30">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+            <Dot /> How this calculator works
+          </div>
+          <div className="mt-5 space-y-5 text-body/95 text-sm leading-relaxed">
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Baseline answer rate</div>
+              <p>Per industry, set from public 2025 and 2026 research. Financial services 12% (TransUnion/Forrester reports ~90% of enterprise calls go unanswered). Healthcare 25% (reminder calls have higher baselines than cold outbound). E-commerce 15% (delivery calls land between). B2B prospecting 18% (Convoso/SalesHive mid-range).</p>
+            </div>
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Branded calling lift</div>
+              <p>TNS reports answer-rate improvements of 40 to 130% for enterprises using branded calling. Orange/Telef\u00f3nica claimed up to 5x at MWC 2026. This calculator uses mid-range industry-specific values: 60% for financial services, 40% for healthcare, 50% for e-commerce, 80% for B2B prospecting. Higher baselines get smaller relative lifts.</p>
+            </div>
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Caller Reputation lift</div>
+              <p>Assumed 8% relative lift from mislabel remediation alone (Hiya cites 53% of enterprise leaders reporting mislabels lowered contact rates; Numeracle reports remediating over 1M numbers in 2025). This is independent of branded display and applies whether or not Branded Call is enabled.</p>
+            </div>
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Hiya pricing</div>
+              <p>$25 one-time platform setup fee is public. Per-delivered-branded-call cost is estimated at $0.012, based on industry-comparable per-call pricing (Hiya does not publish per-tier rates). Voice AI Agent pricing is estimated at $0.25 per call, derived from Bland.ai and Vapi per-minute rates at typical 2.5-minute call duration (Hiya is in beta with no public pricing).</p>
+            </div>
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Lifts compound multiplicatively</div>
+              <p>Caller Reputation and Branded Call lifts stack on top of each other rather than adding. Effective rate is capped at 95% to avoid implausible outputs at high lift combinations. The Voice AI Agent layer increases effective dial volume by 50% (estimate of capacity gain at constant headcount, not an answer-rate change).</p>
+            </div>
+            <div>
+              <div className="font-display font-bold text-ink text-sm mb-1.5">Value per successful contact</div>
+              <p>Industry-specific average: $75 for financial services (claims/payment recovery moments), $200 per appointment retained for healthcare (national avg cost per missed visit), $17 for e-commerce (US avg failed delivery cost avoided per success), $50 per B2B prospecting connect (multi-touch journey contribution, not per-meeting). These are conservative single-event values; lifetime-value impact is higher and not modeled here.</p>
+            </div>
+            <div className="pt-4 border-t border-line/40">
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2 mb-2">
+                <Dot tone="warn" /> What this calculator doesn't model
+              </div>
+              <ul className="space-y-1.5">
+                <li>Lifetime customer value impact (a kept appointment or avoided fraud loss compounds across renewal cycles).</li>
+                <li>Sales-cycle friction (procurement, security review, integration time-to-value).</li>
+                <li>Customer churn from spam-labeled outbound (downside protection, not modeled as a positive number).</li>
+                <li>Network effects at carrier scale (a brand with high Caller Reputation gets easier carrier-side throughput across all numbers).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Why this matters for the role */}
+        <div className="mt-12 max-w-3xl border border-accent/40 rounded-lg p-6 md:p-7 bg-surface/40">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent flex items-center gap-2">
+            <Dot /> Why this calculator matters for the role
+          </div>
+          <p className="mt-4 text-body leading-relaxed">
+            The activation funnel from §02 H1 lives or dies on whether the buyer can see this math at the moment of decision. Hiya already publishes pricing tiers and a partial calculator. What's missing is the full activation flow that walks a buyer from free reputation reporting through to the paid stack, with ROI math the buyer trusts because the assumptions are transparent. The work is to build the in-product version of this calculator with real customer-specific data instead of industry averages, wire it to plan-tier upgrade triggers, and instrument every step. This calculator is illustrative of the buyer-facing artifact that activation needs, not the artifact itself.
+          </p>
+        </div>
+      </SectionShell>
+    );
+  };
+
+  // Helper components for the calculator UI
+  const LayerToggle = ({ active, onToggle, name, priceLabel, effectLabel }) => (
+    <button
+      onClick={onToggle}
+      className={
+        'text-left p-4 rounded-lg border tier-btn ' +
+        (active
+          ? 'border-accent bg-accent/10 text-ink'
+          : 'border-line/60 bg-surface/30 text-body hover:border-accent/60')
+      }
+      aria-pressed={active}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-display font-bold text-sm md:text-base">{name}</span>
+        <span
+          className={
+            'font-mono text-[10px] tabnum uppercase tracking-wide100 shrink-0 ' +
+            (active ? 'text-accent' : 'text-muted')
+          }
+        >
+          {active ? 'on' : 'off'}
+        </span>
+      </div>
+      <div className="mt-1.5 font-mono text-[10px] tabnum text-muted">{priceLabel}</div>
+      <div className="mt-2 text-xs text-body/90 leading-relaxed">{effectLabel}</div>
+    </button>
+  );
+
+  const CalcStat = ({ label, value, sub, tone }) => {
+    const valueColor =
+      tone === 'accent' ? 'text-accent' : tone === 'warn' ? 'text-warn' : 'text-ink';
+    return (
+      <div className="p-5 md:p-6">
+        <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">{label}</div>
+        <div className={'mt-2 font-mono text-2xl md:text-3xl tabnum leading-none ' + valueColor}>
+          {value}
+        </div>
+        <div className="mt-2 text-xs text-muted leading-snug">{sub}</div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // SECTION 11 — Framework I'd Validate
+  // ============================================================
+  const Framework = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Not a prescription. The criteria I'd use to choose among the four.
+      </h2>
+      <Placeholder
+        kind="decision framework · 4 to 5 criteria"
+        lines={[
+          'Criterion 1: which funnel stage is leaking most right now (data-led).',
+          'Criterion 2: which distribution path is most underused given the new carrier reach.',
+          'Criterion 3: which competitive deadline is hardest. The CTIA BCID rollout, the AI-agent commoditization race, the deepfake-detection productization window.',
+          'Criterion 4: internal-team capability inventory. Where is product-engineering capacity actually free.',
+          'Explicitly flagged as a framework, not a commitment. The §12 plan tests which criterion is binding.',
+        ]}
+      />
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 12 — First 90 Days
+  // ============================================================
+  const NINETY_PHASES = [
+    {
+      num: '1',
+      days: 'Days 1 to 30',
+      title: 'Listen and Instrument',
+      summary: 'The goal is to map the actual state of the activation funnel, the team, and the four hypotheses before bringing any new structure. No commitments made; no new bets opened. The 30-day mark is when the team should expect a Phase 2 plan, not a Phase 2 conclusion.',
+      actions: [
+        { verb: 'Instrument', text: 'the Caller Reputation funnel end-to-end. Pull existing analytics on Caller Reputation visits, score-checks, Number Registration conversions, and paid Hiya Connect signups. Identify where the funnel currently leaks. If instrumentation does not exist, build the minimum needed before the rest of the phase.' },
+        { verb: 'Interview', text: '12 to 15 existing enterprise customers across the five segments in §09. Distribution roughly: 4 financial services, 3 healthcare, 3 e-commerce, 2 B2B sales, 2 mid-market. Each interview surfaces: how the customer found Hiya, what they were doing before, what made them buy, what almost made them not buy, and what they wish Hiya had built.' },
+        { verb: 'Audit', text: 'the Voice AI Agents beta cohort. Read the beta-product analytics, talk to the PM and engineering leads, identify which beta customers are converting from Branded Call vs. arriving net-new, and map the open packaging questions from §02 H2 against what has already been decided internally.' },
+        { verb: 'Map', text: "decision rights across Connect, Protect, Voice AI Agents, and AI Voice Detection. Sit with each product line's lead, identify who owns what, where the seams are, and which hypotheses depend on cross-line coordination. Not a reorg proposal: a map." },
+      ],
+    },
+    {
+      num: '2',
+      days: 'Days 31 to 60',
+      title: 'Hypothesis Testing',
+      summary: 'The four hypotheses each get a customer-discovery test. By the end of Phase 2, the team should know which one or two have the strongest signal and which can be deprioritized without losing optionality.',
+      actions: [
+        { verb: 'Test H1', text: '(Caller Reputation as activation engine) with a remediation-workflow user-research sprint. Take 6 to 8 enterprise customers who have visited Caller Reputation in the last 90 days but have not upgraded. Walk them through a prototyped remediation-to-paid flow. Measure what blocks the conversion, what would make them act, what they would pay for.' },
+        { verb: 'Test H2', text: '(Voice AI Agents packaging) with three commercial framings. Run buyer interviews on three pricing or positioning frames: standalone product, stacked bundle on Branded Call, OEM-distributed surface. Measure which buyer types respond to which frame, and whether the buyer expects this product to be one offer or three.' },
+        { verb: 'Test H3', text: "(carrier pull-through) by interviewing 8 to 10 enterprise prospects in newly-lit markets. Focus on UK (post-Vodafone) and Germany (post-O2 Telef\u00f3nica and Deutsche Telekom). Measure: do they know Hiya Connect exists in their market? Have they been contacted? What would they expect their carrier's enterprise sales team to bring them?" },
+        { verb: 'Test H4', text: '(AI Voice Detection productization) by interviewing 4 to 6 security and risk leaders. Different buyer per §08, so the interview script is different. Measure: do they treat voice fraud as a current threat? Where does it sit on their priority list? Would they buy a standalone Hiya product or expect this from their existing security stack?' },
+      ],
+    },
+    {
+      num: '3',
+      days: 'Days 61 to 90',
+      title: 'Fake-Door Validation',
+      summary: 'The hypotheses that survived Phase 2 get pressure-tested with real buyers reacting to real-looking artifacts. Fake-door tests reveal what interviews cannot: whether buyers will act on the proposition, not just say they would.',
+      actions: [
+        { verb: 'Build', text: 'a fake-door landing page for the leading hypothesis. If H1 survives Phase 2, the page is a Caller Reputation activation flow. If H2 survives, it is a Voice AI Agents commercial offer. Real Hiya branding, real-looking forms, no actual product behind it yet. Drive traffic through normal channels and measure intent-to-purchase signal.' },
+        { verb: 'Pressure-test', text: 'pricing sensitivity with a paid Wizard-of-Oz pilot. Recruit 3 to 5 customers willing to pay for the prototyped offer, deliver the value manually behind the scenes, measure willingness to pay at multiple price points, and validate the per-call or per-seat economics from the §10 calculator against real buyer behavior.' },
+        { verb: 'Run', text: 'a packaging A/B test inside the existing Hiya Connect signup flow. Test whether segmenting by buyer-type (per §08) changes activation conversion, against a control. Even a small lift validates the buyer-fragmentation thesis from §08.' },
+        { verb: 'Prepare', text: 'the build commitment artifact for the surviving hypothesis. Engineering scoping, GTM resourcing ask, success metrics with explicit kill criteria, and a Q+1 roadmap recommendation that the team can ratify or reject. This is the artifact the role would bring to its first major commit review.' },
+      ],
+    },
+  ];
+
+  const NINETY_WOULD_NOT_DO = [
+    {
+      head: 'A Voice AI Agents GA launch decision.',
+      body: 'GA timing is a strategic call that depends on data only internal teams have. Phase 2 informs the recommendation; Phase 3 pressure-tests packaging. The launch decision itself sits with the people who know the engineering and beta data.',
+    },
+    {
+      head: 'A reorganization or team-structure change.',
+      body: 'The decision-rights map in Phase 1 is diagnosis, not prescription. Any structural change in the first 90 days would be guessing without the operating context.',
+    },
+    {
+      head: 'A new pricing model for any product line.',
+      body: 'The §10 calculator pressure-tests assumptions; it is not a pricing proposal. Pricing changes affect existing customers, partner economics, and finance forecasts: work that requires a quarter of integration before it can be done responsibly.',
+    },
+    {
+      head: 'A public roadmap commitment.',
+      body: 'The 90-day work outputs a build commitment artifact for internal review, not external announcements. Public roadmap commitments are downstream of internal validation, customer signal, and the kind of pipeline visibility that exists past the first quarter.',
+    },
+  ];
+
+  const Ninety = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Listen, instrument, fake-door: three phases on a tight clock.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        The four hypotheses in §02 are held in parallel because outside data can't resolve them. The 90-day plan below treats the first 30 days as discovery (no commitments), the next 30 as hypothesis-testing (the four hypotheses get tested against customer signal), and the final 30 as fake-door validation (the surviving hypothesis is pressure-tested against real buyer behavior before the team commits build capacity). The plan is calibrated to a Principal PM joining without internal context. A more aggressive timeline is possible if internal data already resolves some of the four; a longer one is needed if the activation funnel has not been instrumented yet.
+      </p>
+
+      {/* Three phases */}
+      <div className="mt-12 space-y-6">
+        {NINETY_PHASES.map((p, i) => (
+          <article key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="font-mono text-accent tabnum text-sm">Phase {p.num}</span>
+              <span className="font-mono text-[11px] tabnum text-muted">· {p.days}</span>
+              <h3 className="font-display font-bold text-ink text-xl md:text-2xl leading-snug">{p.title}</h3>
+            </div>
+            <p className="mt-4 text-body leading-relaxed">{p.summary}</p>
+            <div className="mt-5 pt-5 border-t border-line/40">
+              <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-3">Four actions</div>
+              <ol className="space-y-3">
+                {p.actions.map((a, ai) => (
+                  <li key={ai} className="flex gap-3 text-body/95 text-sm leading-relaxed">
+                    <span className="font-mono text-accent tabnum text-[11px] mt-1 shrink-0">{String(ai + 1).padStart(2, '0')}</span>
+                    <span><span className="font-display font-bold text-ink">{a.verb}</span> {a.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* What I would not do panel */}
+      <div className="mt-14 border border-warn/40 rounded-lg p-6 md:p-7 bg-surface/40">
+        <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+          <Dot tone="warn" /> What I would not do in the first 90 days
+        </div>
+        <p className="mt-4 text-body leading-relaxed">
+          A 90-day plan is partly defined by what's deferred. Four specific things I would not commit to:
+        </p>
+        <ol className="mt-5 space-y-4">
+          {NINETY_WOULD_NOT_DO.map((c, i) => (
+            <li key={i} className="flex gap-4">
+              <span className="font-mono text-warn tabnum text-[11px] mt-1 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                <div className="font-display font-bold text-ink text-sm md:text-base leading-snug">{c.head}</div>
+                <p className="mt-1.5 text-body/95 text-sm leading-relaxed">{c.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 13 — Open Questions
+  // ============================================================
+  const QUESTIONS_GROUPS = [
+    {
+      code: 'A',
+      title: "About data I can't see externally",
+      items: [
+        "What's the current Caller Reputation-to-paid-Connect conversion rate, by industry segment and by carrier-of-origin? This is the load-bearing data for H1. The shape of the funnel (where it leaks, where it converges, where it stalls) determines whether activation-engine work is the right wedge or a distraction.",
+        "What's the current ratio of enterprise revenue to carrier-distributed reach, broken out by market? H3 is built on the assumption that the activation gap is a real revenue catalyst in the newly-lit markets. If UK and German enterprise revenue is already pull-through-saturated, H3 is mostly fiction. If the gap is wide, H3 is the biggest bet on the list.",
+        "What's the actual gross-margin structure of Protect (carrier-funded), Connect (enterprise SaaS), and Voice AI Agents (beta)? The free-for-business posture from §05 depends on Protect carrying enough margin to underwrite the rest. Without margin visibility, the strategic split is observable but not measurable.",
+        "What does the activation funnel for self-service tiers look like, by market? Hiya runs self-service in the US, UK, Canada, and Australia. The conversion rates, churn rates, and tier-progression rates across those four would tell me whether self-service is the long-tail vehicle for SMB (per §09) or whether it is structurally underperforming and needs rework.",
+      ],
+    },
+    {
+      code: 'B',
+      title: 'About product strategy',
+      items: [
+        "What's the internal GA timeline for Voice AI Agents, and what's the packaging direction? H2 is the most direct candidate for the role and the least public. If GA is two months out with packaging locked, the role inherits execution. If GA is six months out with packaging open, the role gets to design it. Different jobs.",
+        'Is AI Voice Detection (post-Loccus AI) being productized as a standalone enterprise SaaS offer, or as a feature inside Hiya Protect? H4 lives or dies on this. The strategic answer probably already exists internally; from outside, the productization signal is mixed.',
+        "What's the long-term posture on Caller Reputation: permanent moat (free forever) or transitional activation surface (eventually monetized)? This determines whether activation-engine work compounds Hiya's competitive position or risks the trust intermediary frame that makes the network defensible.",
+        "What's the operating thesis on the consumer Hiya Apps surface? The brief deliberately holds Apps outside the analytical frame because the role appears to be enterprise-side. But Apps generates user data that feeds enterprise reputation; the strategic relationship matters even if the role does not own Apps directly.",
+      ],
+    },
+    {
+      code: 'C',
+      title: 'About operating model',
+      items: [
+        'How is product ownership currently split between Connect, Protect, Voice AI Agents, AI Voice Detection, and Apps? The decision-rights map in Phase 1 of §12 is exactly this question. Different answers (one PM org vs. multiple, federated vs. centralized) imply very different role scopes.',
+        "What's the partnership-vs-direct revenue mix today, and where is it trending? Enterprise activation in newly-lit carrier markets is plausibly carrier-sales-led, BD-led, or PM-led depending on this number. The same role does materially different work under each model.",
+        'How are decisions currently made about which carrier or OEM relationships to pursue, deepen, or rationalize? With 12+ carrier partners and Samsung-through-2028, the network is the moat, but the question of which slice of the network to invest in next is the kind of capital-allocation question that may sit outside this role or may be central to it.',
+        "What's the team's view on Voice AI Agent commoditization? The competitive set in §07 Group C will commoditize on model quality. Hiya's defensible position is the trust layer underneath the agents. Internal alignment on this, or lack of it, would significantly shape what the role can credibly own in 90 days.",
+      ],
+    },
+  ];
+
+  const Questions = ({ sec }) => (
+    <SectionShell sec={sec}>
+      <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+        Twelve questions that would change the brief if I had answers.
+      </h2>
+      <p className="mt-5 text-body max-w-3xl leading-relaxed">
+        The brief above is calibrated to public material. Every section names where the diagnosis is confident and where it's bounded by what an outsider can see. The 12 questions below are the binding constraints. None of them have public answers I could find. Each one would change the brief's substance if I had a credible internal answer, which is why they belong at the bottom rather than threaded through. Grouped by data, strategy, and operating model.
+      </p>
+
+      {QUESTIONS_GROUPS.map((g, gi) => (
+        <div key={gi} className="mt-12">
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted mb-4 flex items-center gap-2">
+            <Dot /> Group {g.code} · {g.title}
+          </div>
+          <ol className="space-y-4">
+            {g.items.map((q, qi) => {
+              const qNum = gi * 4 + qi + 1;
+              return (
+                <li key={qi} className="border border-line/60 rounded-lg p-5 md:p-6 bg-surface/30">
+                  <div className="flex gap-4">
+                    <span className="font-mono text-accent tabnum text-sm mt-0.5 shrink-0">Q{qNum}</span>
+                    <p className="text-body/95 text-sm leading-relaxed">{q}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))}
+    </SectionShell>
+  );
+
+  // ============================================================
+  // SECTION 14 — Why This Profile (renders at all tiers; depth scales)
+  // STARTING POINT for Kelvin to edit by hand. Dates and role titles
+  // are best-guess from prior conversation context; verify against résumé.
+  // ============================================================
+  const CAREER_ARCS = [
+    {
+      era: '~2013 to 2015',
+      company: 'T-Mobile',
+      role: 'Lead PM, Device Programs (JUMP!)',
+      relevance: "JUMP! created the North American handset upgrade market from a single product launch. Designing a new commercial primitive against a category that didn't exist is what Voice AI Agents beta-to-GA looks like from inside Hiya.",
+      wins: [
+        'Built JUMP! commercial design with cross-functional sign-off across legal, finance, retail, care, and billing.',
+        'Established handset upgrade as a permanent commercial primitive in US wireless. Program launched July 2013, replicated by all four major US carriers within roughly 12 months.',
+        'JUMP! and its successors remain a core T-Mobile retention and upgrade lever more than a decade later.',
+      ],
+      tieIn: '0-to-1 category creation under existing-business constraints maps directly to H2: Voice AI Agents from beta to GA, where the packaging decision is the commercial primitive that determines what category Hiya plays in.',
+    },
+    {
+      era: '~2015 to 2018',
+      company: 'T-Mobile',
+      role: 'Senior PM, Billing & Benefits',
+      relevance: 'Billing & Benefits at T-Mobile was the same transition Hiya is now asking: take a free, friction-laden surface that businesses pay for and turn it into a product customers comprehend, trust, and engage with.',
+      wins: [
+        'Built billing-as-a-consumer-product, associated with +204% one-time payment completion and +76% recurring autopay setup.',
+        'Associated with +23% CLV lift and 43% reduction in billing-related care call volume.',
+        "Surface became T-Mobile's #1 digital property by MAU within the postpaid base.",
+      ],
+      tieIn: "This maps directly to H1: Caller Reputation as the activation engine for Hiya Connect, where the work is turning a free surface customers don't fully understand into a paid surface they trust.",
+    },
+    {
+      era: '~2018 to 2023',
+      company: 'Amazon',
+      role: 'Principal PM (L7), Prime Worldwide Engagement',
+      relevance: "At Prime, I owned a global benefit-activation platform: a hub-and-spoke surface that pulled customers into ~40 individual Prime benefits across 26 country PM teams. Coordinating across many local activation flows on top of a shared platform is what enterprise SaaS pull-through across Hiya's newly-lit carrier markets needs.",
+      wins: [
+        'Owned a global benefit-activation platform across 26 country PM teams, associated with 30M+ monthly benefit utilizations.',
+        'Associated with +23% renewals and +17% shopping activity, both instrumented as CLV inputs rather than vanity metrics.',
+        'Hub-and-spoke architecture supported activation flows for ~40 distinct Prime benefits without forcing them into a uniform shape, with localization controlled by 26 country PM teams.',
+      ],
+      tieIn: 'Multi-market platform PM with CLV-instrumented activation maps directly to H3: enterprise activation across the newly-lit carrier markets (UK, Germany, Spain), where the work is shared platform plus market-specific flows.',
+    },
+  ];
+
+  const Profile = ({ sec, tier }) => {
+    const lvl = TIER[tier];
+    return (
+      <SectionShell sec={sec}>
+        <h2 className="font-display font-bold text-ink tracking-tight25 text-3xl md:text-4xl leading-tight">
+          Three career arcs map to the transition Hiya is asking someone to lead.
+        </h2>
+        <p className="mt-5 text-body max-w-3xl leading-relaxed">
+          The four hypotheses in §02 each ask someone to lead a specific kind of strategic transition. The career arcs below map to those transitions structurally, not just experientially. Each arc names what the work was, the wins it shipped, and where it bridges to the role. The two panels after are the parts of the brief that warrant honesty: the period I've been on a planned break, and the gap I would not claim away.
+        </p>
+
+        {/* Three career arcs */}
+        <div className="mt-12 space-y-6">
+          {CAREER_ARCS.map((arc, i) => (
+            <article key={i} className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/40">
+              <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted">
+                {arc.era} · {arc.company}
+              </div>
+              <h3 className="mt-2 font-display font-bold text-ink text-lg md:text-xl leading-snug">
+                {arc.role}
+              </h3>
+              <p className="mt-4 text-body leading-relaxed">
+                {arc.relevance}
+              </p>
+              <div className="mt-5 pt-5 border-t border-line/40">
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-muted mb-3">Wins</div>
+                <ol className="space-y-2.5">
+                  {arc.wins.map((w, wi) => (
+                    <li key={wi} className="flex gap-3 text-body/95 text-sm leading-relaxed">
+                      <span className="font-mono text-accent tabnum text-[11px] mt-1 shrink-0">{String(wi + 1).padStart(2, '0')}</span>
+                      <span>{w}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="mt-5 pt-5 border-t border-line/40">
+                <div className="font-mono text-[10px] tabnum uppercase tracking-wide100 text-accent mb-2">Bridges to</div>
+                <p className="text-body/95 text-sm italic leading-relaxed">{arc.tieIn}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {/* Two-panel grid below: Independent study + What I would not claim */}
+        {lvl >= 1 && (
+          <div className="mt-14 grid md:grid-cols-2 gap-6">
+            {/* Left panel: Independent study and career break */}
+            <div className="border border-line/60 rounded-lg p-6 md:p-7 bg-surface/30">
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+                <Dot /> Independent study and career break
+              </div>
+              <p className="mt-4 text-body/95 text-sm leading-relaxed">
+                Since October 2023, I've been on a deliberate break from full-time product leadership for family caregiving that's now stabilized. The break was planned, not reactive: caregiving needed someone who could be fully present, and stepping back for a defined period was the right operating call. I'm returning to senior product leadership now with the same cadence and platform-PM instincts I brought to Prime, with one addition.
+              </p>
+              <p className="mt-4 text-body/95 text-sm leading-relaxed">
+                That addition is hands-on practitioner fluency with LLM tooling, built daily over the last 18+ months. Claude Code, Codex, and ChatGPT used as actual operating tools, not exploratory demos. Recent work includes a Bitcoin market-monitoring dashboard that integrates on-chain, macro, and derivatives data into a three-layer decision framework, and an HR recruiting dashboard a non-technical partner built and deployed with my collaboration. The JD names "comfort using AI tools to work faster and smarter" as a requirement. I've been building that comfort on real problems before the role started rather than waiting for it.
+              </p>
+            </div>
+
+            {/* Right panel: What I would not claim */}
+            <div className="border border-warn/40 rounded-lg p-6 md:p-7 bg-surface/30">
+              <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-warn flex items-center gap-2">
+                <Dot tone="warn" /> What I would not claim
+              </div>
+              <p className="mt-4 text-body/95 text-sm leading-relaxed">
+                I am not the deepest enterprise-SaaS GTM PM Hiya will interview. My direct B2B sales-led pipeline experience is partner and vendor-side at T-Mobile, not enterprise SaaS pipeline ownership at a company like Hiya. Candidates with deeper B2B GTM pattern will read the §02 hypotheses faster than I will and will have more pattern-matched intuition for what's currently broken in Hiya's pipeline.
+              </p>
+              <p className="mt-4 text-body/95 text-sm leading-relaxed">
+                What I have lived is the structural primitive Hiya is now asking someone to operate at scale: trust-and-comprehension as a consumer-facing product (Billing & Benefits), 0-to-1 category creation under existing-business constraints (JUMP!), and platform-PM coordination across many local activation flows on top of a shared distribution layer (Prime, 26 markets). The bet is whether structural primitive familiarity plus measured operating cadence beats deeper pattern-match on the specific B2B SaaS flavor. I think it does for this role specifically, because Hiya's defining strategic question isn't "how do we run a generic B2B SaaS playbook better" but "how do we monetize an asymmetric distribution moat through enterprise activation." That's the question my career has been answering at adjacent altitudes.
+              </p>
+            </div>
+          </div>
+        )}
+      </SectionShell>
+    );
+  };
+
+  // Legacy ArcCard helper (no longer used by Profile; safe to delete during rewrite)
+  const ArcCard = ({ tag, title, line }) => (
+    <div className="border border-line/60 rounded-lg p-5 bg-surface/30">
+      <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-accent">
+        <Dot /> {tag}
+      </div>
+      <h3 className="mt-3 font-display font-bold text-ink text-lg leading-snug">{title}</h3>
+      <p className="mt-2 text-body/90 text-sm leading-relaxed">{line}</p>
+    </div>
+  );
+
+  // ============================================================
+  // FOOTER (unnumbered)
+  // ============================================================
+  const Footer = () => (
+    <footer className="mt-12 pt-12 border-t border-line/40">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+        {/* Prepared by */}
+        <div>
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+            <Dot /> Prepared by
+          </div>
+          <div className="mt-4 font-display font-bold text-ink text-lg">Kelvin Zee</div>
+          <div className="mt-1.5 text-sm text-body/95 leading-relaxed">
+            Senior product leader. Subscription, billing, lifecycle, and engagement platforms at Amazon Prime and T-Mobile.
+          </div>
+          <div className="mt-3 font-mono text-[11px] tabnum text-muted">
+            Seattle metro area · open to remote
+          </div>
+          <div className="mt-4 space-y-1 text-sm">
+            <div>
+              <a href="mailto:Kelvinz@gmail.com" className="text-body hover:text-accent">
+                Kelvinz@gmail.com
+              </a>
+            </div>
+            <div>
+              <a
+                href="https://linkedin.com/in/kelvinz"
+                className="text-body hover:text-accent"
+                target="_blank"
+                rel="noreferrer"
+              >
+                linkedin.com/in/kelvinz
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Prepared for */}
+        <div>
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+            <Dot /> Prepared for
+          </div>
+          <div className="mt-4 font-display font-bold text-ink text-lg">Hiya</div>
+          <div className="mt-1.5 text-sm text-body/95 leading-relaxed">
+            Principal Product Manager
+          </div>
+          <div className="mt-3 font-mono text-[11px] tabnum text-muted">
+            May 2026 · cold pre-application
+          </div>
+          <div className="mt-4 text-sm text-body/90 leading-relaxed">
+            A measured strategy memo, not a pitch. Confidence on diagnosis, humility on prescription.
+          </div>
+        </div>
+
+        {/* Sources and method */}
+        <div>
+          <div className="font-mono text-[11px] tabnum uppercase tracking-wide100 text-muted flex items-center gap-2">
+            <Dot /> Sources and method
+          </div>
+          <div className="mt-4 text-sm text-body/90 leading-relaxed">
+            Synthesized from public material only. No internal Hiya data accessed or assumed.
+          </div>
+          <ul className="mt-4 space-y-1.5 text-xs text-body/90 leading-relaxed">
+            <li>· Hiya brand guidelines and product pages (partners.hiya.com, hiya.com)</li>
+            <li>· State of the Call 2026 (Hiya, April 2026)</li>
+            <li>· Optimizing Outbound Communications (TransUnion / Forrester, Feb 2025)</li>
+            <li>· TNS branded calling study; Numeracle 2025 Spam Labeling case study</li>
+            <li>· CTIA Branded Calling ID framework documentation</li>
+            <li>· MWC 2026 announcements (Hiya, Orange, Telef\u00f3nica)</li>
+            <li>· Convoso (Nov 2025) and SalesHive (Q1 2026) call-center benchmarks</li>
+            <li>· Loqate, OneRail, mybcat (logistics and healthcare appointment data)</li>
+            <li>· Hiya newsroom; carrier launch announcements (Vodafone UK, DT, O2 Telef\u00f3nica, MasOrange)</li>
+          </ul>
+          <div className="mt-4 font-mono text-[11px] tabnum text-muted">
+            Verified through May 13, 2026
+          </div>
+        </div>
+      </div>
+
+      {/* Version line at the bottom */}
+      <div className="mt-12 pt-6 border-t border-line/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="font-mono text-[11px] tabnum text-muted">
+          v1.0 · May 2026 · self-contained HTML, no build step, no backend
+        </div>
+        <div className="font-mono text-[11px] tabnum text-muted">
+          <a href="#hero" className="hover:text-accent">
+            Back to top ↑
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+
+  // ============================================================
+  // ROOT APP — assembles everything; tracks active section via IntersectionObserver
+  // ============================================================
+  const App = () => {
+    const [tier, setTier] = useState('full');
+    const [navOpen, setNavOpen] = useState(false);
+    const [activeId, setActiveId] = useState('hero');
+    const lvl = TIER[tier];
+
+    // Track active section in viewport for nav highlight
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) setActiveId(e.target.id);
+          });
+        },
+        { rootMargin: '-30% 0px -55% 0px', threshold: 0 }
+      );
+      SECTIONS.forEach((s) => {
+        const el = document.getElementById(s.id);
+        if (el) observer.observe(el);
+      });
+      return () => observer.disconnect();
+    }, [tier]);
+
+    // Helper: get section spec by id
+    const get = (id) => SECTIONS.find((s) => s.id === id);
+
+    return (
+      <div className="min-h-screen">
+        <TopBar tier={tier} setTier={setTier} onOpenNav={() => setNavOpen(true)} />
+
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+          <div className="md:grid md:grid-cols-12 md:gap-8">
+            <div className="md:col-span-3">
+              <SideNav tier={tier} activeId={activeId} navOpen={navOpen} setNavOpen={setNavOpen} />
+            </div>
+
+            <main className="md:col-span-9">
+              <Hero sec={get('hero')} tier={tier} setTier={setTier} />
+              <Hypotheses sec={get('hypotheses')} tier={tier} />
+              {lvl >= TIER.strategist && <Setup       sec={get('setup')}      tier={tier} />}
+              {lvl >= TIER.full       && <Analogy     sec={get('analogy')}    tier={tier} />}
+              {lvl >= TIER.strategist && <TrustStack  sec={get('stack')}      tier={tier} />}
+              {lvl >= TIER.strategist && <Network     sec={get('network')}    tier={tier} />}
+              {lvl >= TIER.full       && <Field       sec={get('field')}      tier={tier} />}
+              {lvl >= TIER.full       && <BuyerShift  sec={get('buyer')}      tier={tier} />}
+              {lvl >= TIER.full       && <Segments    sec={get('segments')}   tier={tier} />}
+              {lvl >= TIER.full       && <Calculator  sec={get('calculator')} tier={tier} />}
+              {lvl >= TIER.strategist && <Framework   sec={get('framework')}  tier={tier} />}
+              {lvl >= TIER.strategist && <Ninety      sec={get('ninety')}     tier={tier} />}
+              {lvl >= TIER.full       && <Questions   sec={get('questions')}  tier={tier} />}
+              <Profile sec={get('profile')} tier={tier} />
+              <Footer />
+            </main>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
